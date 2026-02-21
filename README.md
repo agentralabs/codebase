@@ -248,7 +248,7 @@ curl -fsSL https://agentralabs.tech/install/codebase | bash
 | Channel | Command | Result |
 |:---|:---|:---|
 | crates.io (official) | `cargo install agentic-codebase` | Installs both `acb` and `acb-mcp` |
-| GitHub releases (official) | `curl -fsSL https://agentralabs.tech/install/codebase \| bash` | Installs binaries and merges MCP config |
+| GitHub installer (official) | `curl -fsSL https://agentralabs.tech/install/codebase \| bash` | Installs release binaries when available, otherwise source fallback; merges MCP config |
 
 ## Deployment Model
 
