@@ -21,6 +21,7 @@ Thumbs.db
 *.aux
 *.bbl
 *.blg
+*.log
 *.out
 *.toc
 *.fls
