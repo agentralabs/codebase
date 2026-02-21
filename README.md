@@ -41,11 +41,21 @@ Four languages. Twenty-four query types. One file holds everything. Sub-microsec
 
 ---
 
+<p align="center">
+  <img src="assets/semantic-graph.svg" alt="AgenticCodebase semantic graph with typed code units, dependency edges, impact signals, and prophecy paths" width="800">
+</p>
+
+---
+
 <a name="benchmarks"></a>
 
 ## Benchmarks
 
 Rust core. Tree-sitter parsing. Binary `.acb` format. Real numbers from `cargo bench --release`:
+
+<p align="center">
+  <img src="assets/benchmark-chart.svg" alt="AgenticCodebase benchmark latency profile" width="800">
+</p>
 
 | Operation | 1K units | 10K units | Notes |
 |:---|---:|---:|:---|
@@ -182,6 +192,10 @@ AgenticCodebase provides 24 query types across three tiers:
 ## Architecture
 
 AgenticCodebase models source code as a directed graph G = (U, E) where each vertex is a typed CodeUnit and each edge carries a semantic relationship.
+
+<p align="center">
+  <img src="assets/cross-runtime.svg" alt="AgenticCodebase cross-runtime artifact flow from CLI and MCP to dependency, impact, and prophecy surfaces" width="760">
+</p>
 
 ### Compilation Pipeline
 

@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 480" role="img" aria-label="AgenticCodebase semantic graph in Agentra design system">
+  <defs>
+    <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
+      <circle cx="2" cy="2" r="1" fill="#c9c6bb"/>
+    </pattern>
+    <marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+      <path d="M0,0 L8,4 L0,8 Z" fill="#1f1f1f"/>
+    </marker>
+    <style><![CDATA[
+      .mono { font-family:'IBM Plex Mono','JetBrains Mono',monospace; }
+      .ink { fill:#121212; }
+      .muted { fill:#6d6a63; }
+      .accent { fill:#ea580c; }
+      .panel { fill:#fffdf6; stroke:#1f1f1f; stroke-width:2; }
+      .node { fill:#fff8ea; stroke:#1f1f1f; stroke-width:1.5; }
+      .edge { stroke:#1f1f1f; stroke-width:1.5; marker-end:url(#arrow); fill:none; }
+      .edge-accent { stroke:#ea580c; stroke-width:1.8; marker-end:url(#arrow); fill:none; }
+    ]]></style>
+  </defs>
+
+  <rect width="880" height="480" fill="#f2f1ea"/>
+  <rect width="880" height="480" fill="url(#grid)"/>
+  <line x1="20" y1="30" x2="860" y2="30" stroke="#1f1f1f"/>
+  <text x="20" y="22" class="mono muted" font-size="11" letter-spacing="2">// SEMANTIC_GRAPH: CODE UNITS + EDGES</text>
+
+  <rect x="24" y="48" width="832" height="404" class="panel"/>
+
+  <rect x="76" y="84" width="148" height="54" rx="10" class="node"/>
+  <text x="150" y="116" class="mono ink" text-anchor="middle" font-size="12" letter-spacing="1">MODULE</text>
+
+  <rect x="76" y="166" width="148" height="54" rx="10" class="node"/>
+  <text x="150" y="198" class="mono ink" text-anchor="middle" font-size="12" letter-spacing="1">FUNCTION</text>
+
+  <rect x="76" y="248" width="148" height="54" rx="10" class="node"/>
+  <text x="150" y="280" class="mono ink" text-anchor="middle" font-size="12" letter-spacing="1">TEST</text>
+
+  <rect x="380" y="166" width="120" height="64" rx="12" fill="#ece7d8" stroke="#1f1f1f" stroke-width="2"/>
+  <circle cx="440" cy="198" r="21" fill="none" stroke="#1f1f1f" stroke-width="2"/>
+  <line x1="440" y1="180" x2="440" y2="216" stroke="#1f1f1f"/>
+  <line x1="422" y1="198" x2="458" y2="198" stroke="#1f1f1f"/>
+  <circle cx="440" cy="166" r="4" class="accent"/>
+  <text x="440" y="246" class="mono muted" text-anchor="middle" font-size="10" letter-spacing="1.2">ACB.CORE</text>
+
+  <rect x="654" y="84" width="148" height="54" rx="10" class="node"/>
+  <text x="728" y="116" class="mono ink" text-anchor="middle" font-size="12" letter-spacing="1">DEPENDENCY</text>
+
+  <rect x="654" y="166" width="148" height="54" rx="10" class="node"/>
+  <text x="728" y="198" class="mono ink" text-anchor="middle" font-size="12" letter-spacing="1">IMPACT</text>
+
+  <rect x="654" y="248" width="148" height="54" rx="10" class="node"/>
+  <text x="728" y="280" class="mono ink" text-anchor="middle" font-size="12" letter-spacing="1">PROPHECY</text>
+
+  <path d="M224 111 L380 96" class="edge"/>
+  <path d="M224 193 L380 198" class="edge"/>
+  <path d="M224 275 L380 300" class="edge"/>
+
+  <path d="M500 96 L654 111" class="edge"/>
+  <path d="M500 198 L654 193" class="edge-accent"/>
+  <path d="M500 300 L654 275" class="edge"/>
+
+  <text x="44" y="358" class="mono muted" font-size="11" letter-spacing="1.7">EDGE TYPES: CALLS / IMPORTS / TESTS / COUPLES_WITH / IMPACTS / TEMPORAL_NEXT</text>
+  <line x1="44" y1="373" x2="836" y2="373" stroke="#1f1f1f"/>
+  <text x="44" y="398" class="mono ink" font-size="12" letter-spacing="1.4">QUERY ENGINE: 24 CAPABILITIES OVER PORTABLE <tspan class="accent">.ACB</tspan> ARTIFACTS</text>
+  <circle cx="836" cy="394" r="4" class="accent"/>
+</svg>

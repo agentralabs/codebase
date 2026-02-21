@@ -1,47 +1,55 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1400 360" role="img" aria-label="AgenticCodebase GitHub hero pane">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1400 360" role="img" aria-label="AgenticCodebase hero pane in Agentra design system">
   <defs>
-    <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
-      <circle cx="2" cy="2" r="1" fill="#b8b6ae"/>
+    <pattern id="grid" width="22" height="22" patternUnits="userSpaceOnUse">
+      <circle cx="2" cy="2" r="1" fill="#c9c6bb"/>
     </pattern>
+    <style><![CDATA[
+      .ink { fill:#121212; }
+      .muted { fill:#6d6a63; }
+      .accent { fill:#ea580c; }
+      .mono { font-family:'IBM Plex Mono','JetBrains Mono',monospace; }
+      .sans { font-family:'Sora','Space Grotesk',sans-serif; }
+    ]]></style>
   </defs>
+
   <rect width="1400" height="360" fill="#f2f1ea"/>
   <rect width="1400" height="360" fill="url(#grid)"/>
-  <rect x="20" y="20" width="1360" height="320" fill="none" stroke="#111111" stroke-width="2"/>
 
-  <line x1="20" y1="62" x2="1380" y2="62" stroke="#111111" stroke-width="2"/>
-  <text x="40" y="48" font-family="'JetBrains Mono', monospace" font-size="14" fill="#5f5c53" letter-spacing="2"> // AGENTRA_LABS: MODULE_HERO</text>
-  <rect x="1318" y="36" width="8" height="8" fill="#ea580c"/>
-  <text x="1336" y="48" font-family="'JetBrains Mono', monospace" font-size="12" fill="#5f5c53" letter-spacing="2">001</text>
+  <line x1="28" y1="34" x2="1372" y2="34" stroke="#1f1f1f" stroke-width="1"/>
+  <text x="28" y="26" class="mono muted" font-size="13" letter-spacing="2">// SECTION: CODEBASE.SEMANTIC.COMPILER</text>
+  <text x="1338" y="26" class="mono muted" font-size="13" text-anchor="end" letter-spacing="2">TICK:1003</text>
 
-  <rect x="46" y="92" width="232" height="232" fill="none" stroke="#111111" stroke-width="2"/>
-  <rect x="46" y="92" width="232" height="38" fill="#111111"/>
-  <text x="62" y="116" font-family="'JetBrains Mono', monospace" font-size="11" fill="#f2f1ea" letter-spacing="2">CODEBASE.SEMANTIC_GRAPH</text>
+  <rect x="28" y="60" width="430" height="274" fill="#fffdf6" stroke="#1f1f1f" stroke-width="2"/>
+  <rect x="28" y="60" width="430" height="32" fill="#2a2825"/>
+  <text x="44" y="81" class="mono" font-size="12" fill="#d5d1c7" letter-spacing="2">RENDER: CODEBASE.CORE</text>
+  <text x="442" y="81" class="mono accent" font-size="12" text-anchor="end" letter-spacing="2">LIVE</text>
 
-  <path d="M96 176L76 208L96 240" fill="none" stroke="#111111" stroke-width="4" stroke-linecap="square"/>
-  <path d="M230 176L250 208L230 240" fill="none" stroke="#111111" stroke-width="4" stroke-linecap="square"/>
-  <rect x="124" y="168" width="78" height="80" fill="none" stroke="#111111" stroke-width="3"/>
-  <line x1="138" y1="188" x2="186" y2="188" stroke="#ea580c" stroke-width="3"/>
-  <line x1="138" y1="206" x2="186" y2="206" stroke="#ea580c" stroke-width="3"/>
-  <line x1="138" y1="224" x2="170" y2="224" stroke="#ea580c" stroke-width="3"/>
-  <circle cx="214" cy="176" r="5" fill="#ea580c"/>
-  <circle cx="228" cy="194" r="5" fill="#ea580c"/>
-  <circle cx="214" cy="212" r="5" fill="#ea580c"/>
-  <line x1="214" y1="176" x2="228" y2="194" stroke="#111111" stroke-width="2"/>
-  <line x1="228" y1="194" x2="214" y2="212" stroke="#111111" stroke-width="2"/>
+  <rect x="44" y="108" width="398" height="194" fill="#0f0f10" stroke="#1f1f1f" stroke-width="1.5"/>
+  <rect x="72" y="144" width="104" height="26" fill="none" stroke="#3b3832"/>
+  <text x="124" y="161" class="mono" font-size="10" fill="#f4f2eb" text-anchor="middle">UserService</text>
+  <rect x="206" y="132" width="104" height="26" fill="none" stroke="#3b3832"/>
+  <text x="258" y="149" class="mono" font-size="10" fill="#f4f2eb" text-anchor="middle">AuthFlow</text>
+  <rect x="338" y="170" width="78" height="26" fill="none" stroke="#3b3832"/>
+  <text x="377" y="187" class="mono" font-size="10" fill="#f4f2eb" text-anchor="middle">Tests</text>
+  <line x1="176" y1="157" x2="206" y2="145" stroke="#ea580c" stroke-width="2"/>
+  <line x1="310" y1="145" x2="338" y2="183" stroke="#ea580c" stroke-width="2"/>
+  <line x1="124" y1="170" x2="124" y2="236" stroke="#2f2c28"/>
+  <line x1="258" y1="158" x2="258" y2="236" stroke="#2f2c28"/>
+  <circle cx="124" cy="236" r="4" fill="#ea580c"/>
+  <circle cx="258" cy="236" r="4" fill="#ea580c"/>
+  <circle cx="377" cy="183" r="4" fill="#ea580c"/>
 
-  <text x="324" y="136" font-family="'JetBrains Mono', monospace" font-size="52" fill="#111111" font-weight="700" letter-spacing="1">AGENTICCODEBASE</text>
-  <text x="324" y="172" font-family="'JetBrains Mono', monospace" font-size="18" fill="#ea580c" font-weight="700" letter-spacing="2">SEMANTIC COMPILER + COLLECTIVE + PROPHECY</text>
-  <text x="324" y="210" font-family="'JetBrains Mono', monospace" font-size="16" fill="#5f5c53">
-    Agents navigate concepts not files: impact edges, hidden coupling, cross-language traces,
-  </text>
-  <text x="324" y="234" font-family="'JetBrains Mono', monospace" font-size="16" fill="#5f5c53">
-    collective dependency patterns, and temporal forecasting before changes ship.
-  </text>
+  <text x="44" y="325" class="mono" font-size="11" fill="#5f5a52" letter-spacing="1.6">SIGNAL: SEMANTIC EDGES + IMPACT + PROPHECY</text>
 
-  <rect x="324" y="258" width="154" height="34" fill="#111111"/>
-  <text x="344" y="280" font-family="'JetBrains Mono', monospace" font-size="12" fill="#f2f1ea" letter-spacing="2">MCP-NATIVE</text>
-  <rect x="488" y="258" width="146" height="34" fill="#111111"/>
-  <text x="508" y="280" font-family="'JetBrains Mono', monospace" font-size="12" fill="#f2f1ea" letter-spacing="2">PORTABLE</text>
-  <rect x="644" y="258" width="108" height="34" fill="#ea580c"/>
-  <text x="674" y="280" font-family="'JetBrains Mono', monospace" font-size="12" fill="#f2f1ea" letter-spacing="2">.ACB</text>
+  <line x1="480" y1="60" x2="480" y2="334" stroke="#1f1f1f" stroke-width="2"/>
+  <text x="520" y="132" class="sans ink" font-size="66" font-weight="700" letter-spacing="1">SEMANTIC</text>
+  <text x="520" y="195" class="sans accent" font-size="66" font-weight="700" letter-spacing="1">CODE INTELLIGENCE</text>
+
+  <text x="520" y="238" class="mono muted" font-size="22">Compile repositories into typed intent graphs with</text>
+  <text x="520" y="268" class="mono muted" font-size="22">portable <tspan class="accent">.acb</tspan> artifacts and predictive impact mapping.</text>
+
+  <line x1="520" y1="292" x2="1308" y2="292" stroke="#1f1f1f" stroke-width="2"/>
+  <text x="520" y="318" class="mono ink" font-size="12" letter-spacing="2">AGENTICCODEBASE</text>
+  <text x="860" y="318" class="mono ink" font-size="12" letter-spacing="2">COMPILE + QUERY + PROPHECY</text>
+  <circle cx="1308" cy="314" r="5" fill="#ea580c"/>
 </svg>
