@@ -47,8 +47,6 @@ planning-docs/.cache/
 
 # Internal docs / AI planning / prompt artifacts (do not publish)
 planning-docs/
-docs/planning/
-docs/internal/
 CLAUDE-CODE-INSTRUCTIONS*.md
 SPEC-*.md
 .claude/

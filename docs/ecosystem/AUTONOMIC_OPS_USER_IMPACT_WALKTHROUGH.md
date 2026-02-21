@@ -5,8 +5,7 @@ Scope: AgenticMemory, AgenticVision, AgenticCodebase
 Objective: Keep daily operation hands-off so users do not manually manage lifecycle tasks.
 Canonical references:
 - `CANONICAL_ECOSYSTEM_INDEPENDENCE_CONTRACT.md`
-- `/Users/omoshola/Documents/agentralabs-tech/agentic-codebase/docs/ecosystem/CANONICAL_ECOSYSTEM_INDEPENDENCE_CONTRACT.md`
-- `/Users/omoshola/Documents/agentralabs-tech/agentic-codebase/ECOSYSTEM-CONVENTIONS.md` (Section 28)
+- `CANONICAL_SISTER_KIT.md`
 
 ## 1) What Is Implemented Now (Phase 4)
 

@@ -16,7 +16,6 @@ requiring the others.
 This independence contract is one part of the broader canonical sister standard.
 For all current and future sisters, the full operational baseline lives in:
 
-- `docs/internal/CANONICAL_SISTER_KIT.md`
 - `docs/ecosystem/CANONICAL_SISTER_KIT.md`
 
 That file defines the cross-repo requirements for:
