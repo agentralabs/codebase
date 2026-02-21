@@ -11,6 +11,27 @@ Preserve modular adoption while autonomic operations are introduced.
 Users must be able to install and run any single sister project without
 requiring the others.
 
+## Relationship to Sister Kit
+
+This independence contract is one part of the broader canonical sister standard.
+For all current and future sisters, the full operational baseline lives in:
+
+- `docs/internal/CANONICAL_SISTER_KIT.md`
+- `docs/ecosystem/CANONICAL_SISTER_KIT.md`
+
+That file defines the cross-repo requirements for:
+
+- release artifact naming and composition
+- install contract and fallback behavior
+- reusable CI guardrails
+- README canonical layout
+- MCP canonical profile
+- packaging readiness policy
+- versioning and release policy
+- design asset contract
+- environment variable namespace contract
+- new-sister bootstrap requirements
+
 ## Canonical Rules (MUST)
 
 1. Each sister MUST remain independently installable and operable.
