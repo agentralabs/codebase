@@ -25,7 +25,7 @@ RAG over source files doesn't work. You get "similar text," never *"what breaks 
 
 ```bash
 # Compile any repository (Python, Rust, TypeScript, Go)
-acb compile ./my-project -o project.acb
+acb compile ./my-project -o project.acb --coverage-report coverage.json
 
 # Query it
 acb query project.acb symbol --name "UserService"     # Find symbols
@@ -99,7 +99,7 @@ cargo install agentic-codebase
 
 ```bash
 # Parse and compile a repository into a .acb graph
-acb compile ./my-project -o project.acb
+acb compile ./my-project -o project.acb --coverage-report coverage.json
 
 # View graph metadata
 acb info project.acb
@@ -112,6 +112,12 @@ acb query project.acb impact --unit-id 42 --depth 5
 
 # Code prophecy -- what's likely to break next?
 acb query project.acb prophecy --limit 10
+
+# Graph-wide health summary
+acb health project.acb
+
+# CI-style risk gate for a change candidate
+acb gate project.acb --unit-id 42 --max-risk 0.60 --require-tests
 ```
 
 <a name="mcp-server"></a>
@@ -180,12 +186,12 @@ AgenticCodebase provides 24 query types across three tiers:
 | Coupling | `acb query ... coupling` | Detect tightly coupled unit pairs |
 | Collective | via library API | Cross-repository pattern extraction |
 | Temporal | via library API | Git history evolution analysis |
-| Dead code | via library API | Unreachable code detection |
+| Dead code | `acb query ... dead-code` | Unreachable code detection |
 | Concept | via library API | Abstract concept clustering |
 | Migration | via library API | Language migration planning |
-| Test gap | via library API | Missing test identification |
+| Test gap | `acb query ... test-gap` | Missing test identification |
 | Drift | via library API | Code drift detection over time |
-| Hotspot | via library API | Change frequency hotspot analysis |
+| Hotspot | `acb query ... hotspots` | Change frequency hotspot analysis |
 
 ---
 

@@ -76,6 +76,47 @@ pub struct ParseStats {
     pub parse_time_ms: u64,
     /// Files parsed per language.
     pub by_language: HashMap<Language, usize>,
+    /// Detailed ingestion/skip accounting for auditability.
+    pub coverage: ParseCoverageStats,
+}
+
+/// Detailed counters for ingestion fidelity and skip reasons.
+#[derive(Debug, Clone, Default)]
+pub struct ParseCoverageStats {
+    /// Number of filesystem files seen by the walker.
+    pub files_seen: usize,
+    /// Number of files that made it into parser candidates.
+    pub files_candidate: usize,
+    /// Files skipped because language could not be resolved.
+    pub skipped_unknown_language: usize,
+    /// Files skipped by an explicit language filter.
+    pub skipped_language_filter: usize,
+    /// Files skipped by configured exclude patterns.
+    pub skipped_excluded_pattern: usize,
+    /// Files skipped because they exceeded size limits.
+    pub skipped_too_large: usize,
+    /// Files skipped because test files were disabled.
+    pub skipped_test_file: usize,
+    /// Files that failed to read from disk.
+    pub read_errors: usize,
+    /// Files that failed during parser/extractor execution.
+    pub parse_errors: usize,
+}
+
+impl ParseCoverageStats {
+    /// Total number of files skipped for known reasons.
+    pub fn total_skipped(&self) -> usize {
+        self.skipped_unknown_language
+            + self.skipped_language_filter
+            + self.skipped_excluded_pattern
+            + self.skipped_too_large
+            + self.skipped_test_file
+    }
+}
+
+struct CollectFilesResult {
+    files: Vec<PathBuf>,
+    coverage: ParseCoverageStats,
 }
 
 /// Main parser that orchestrates multi-language parsing.
@@ -136,15 +177,16 @@ impl Parser {
     pub fn parse_directory(&self, root: &Path, options: &ParseOptions) -> AcbResult<ParseResult> {
         let start = Instant::now();
 
-        let files = self.collect_files(root, options)?;
+        let collected = self.collect_files(root, options)?;
+        let files = collected.files;
 
         let mut all_units = Vec::new();
         let mut all_errors = Vec::new();
         let mut files_parsed = 0usize;
-        let mut files_skipped = 0usize;
         let mut files_errored = 0usize;
         let mut total_lines = 0usize;
         let mut by_language: HashMap<Language, usize> = HashMap::new();
+        let mut coverage = collected.coverage;
 
         for file_path in &files {
             let content = match std::fs::read_to_string(file_path) {
@@ -157,19 +199,20 @@ impl Parser {
                         severity: Severity::Error,
                     });
                     files_errored += 1;
+                    coverage.read_errors += 1;
                     continue;
                 }
             };
 
             // Check file size
             if content.len() > options.max_file_size {
-                files_skipped += 1;
+                coverage.skipped_too_large += 1;
                 continue;
             }
 
             let lang = Language::from_path(file_path);
             if lang == Language::Unknown {
-                files_skipped += 1;
+                coverage.skipped_unknown_language += 1;
                 continue;
             }
 
@@ -177,7 +220,7 @@ impl Parser {
             if !options.include_tests {
                 if let Some(parser) = self.parsers.get(&lang) {
                     if parser.is_test_file(file_path, &content) {
-                        files_skipped += 1;
+                        coverage.skipped_test_file += 1;
                         continue;
                     }
                 }
@@ -198,11 +241,13 @@ impl Parser {
                         severity: Severity::Error,
                     });
                     files_errored += 1;
+                    coverage.parse_errors += 1;
                 }
             }
         }
 
         let elapsed = start.elapsed();
+        let files_skipped = coverage.total_skipped();
 
         Ok(ParseResult {
             units: all_units,
@@ -214,6 +259,7 @@ impl Parser {
                 total_lines,
                 parse_time_ms: elapsed.as_millis() as u64,
                 by_language,
+                coverage,
             },
         })
     }
@@ -225,10 +271,11 @@ impl Parser {
     }
 
     /// Collect files to parse from a directory tree using the `ignore` crate.
-    fn collect_files(&self, root: &Path, options: &ParseOptions) -> AcbResult<Vec<PathBuf>> {
+    fn collect_files(&self, root: &Path, options: &ParseOptions) -> AcbResult<CollectFilesResult> {
         use ignore::WalkBuilder;
 
         let mut files = Vec::new();
+        let mut coverage = ParseCoverageStats::default();
 
         let walker = WalkBuilder::new(root).hidden(true).git_ignore(true).build();
 
@@ -242,26 +289,31 @@ impl Parser {
             if !path.is_file() {
                 continue;
             }
+            coverage.files_seen += 1;
 
             let lang = Language::from_path(path);
             if lang == Language::Unknown {
+                coverage.skipped_unknown_language += 1;
                 continue;
             }
 
             // Check language filter
             if !options.languages.is_empty() && !options.languages.contains(&lang) {
+                coverage.skipped_language_filter += 1;
                 continue;
             }
 
             // Check exclude patterns
             if self.is_excluded(path, &options.exclude) {
+                coverage.skipped_excluded_pattern += 1;
                 continue;
             }
 
             files.push(path.to_path_buf());
         }
+        coverage.files_candidate = files.len();
 
-        Ok(files)
+        Ok(CollectFilesResult { files, coverage })
     }
 
     /// Check if a path matches any exclude patterns.

@@ -11,7 +11,7 @@ Profile-specific commands are listed in [Installation](installation.md).
 ## 2. Compile a repository
 
 ```bash
-acb compile ./my-project -o project.acb
+acb compile ./my-project -o project.acb --coverage-report coverage.json
 acb info project.acb
 ```
 
@@ -21,12 +21,22 @@ acb info project.acb
 acb query project.acb symbol --name "main"
 acb query project.acb impact --unit-id 1
 acb query project.acb deps --unit-id 1 --depth 3
+acb query project.acb test-gap
+acb query project.acb hotspots
+acb query project.acb dead-code
 ```
 
-## 4. Start MCP server
+## 4. Run health and gate checks
 
 ```bash
-$HOME/.local/bin/acb-mcp
+acb health project.acb
+acb gate project.acb --unit-id 1 --max-risk 0.60 --require-tests
+```
+
+## 5. Start MCP server
+
+```bash
+acb-mcp serve
 ```
 
 Use `Ctrl+C` to stop after startup verification.

@@ -12,8 +12,9 @@ use clap_complete::Shell;
 
 use crate::cli::output::{format_size, progress, progress_done, Styled};
 use crate::engine::query::{
-    CallDirection, CallGraphParams, CouplingParams, DependencyParams, ImpactParams, MatchMode,
-    ProphecyParams, QueryEngine, SimilarityParams, StabilityResult, SymbolLookupParams,
+    CallDirection, CallGraphParams, CouplingParams, DeadCodeParams, DependencyParams,
+    HotspotParams, ImpactParams, MatchMode, ProphecyParams, QueryEngine, SimilarityParams,
+    StabilityResult, SymbolLookupParams, TestGapParams,
 };
 use crate::format::{AcbReader, AcbWriter};
 use crate::graph::CodeGraph;
@@ -97,6 +98,10 @@ pub enum Command {
         /// Include test files in the compilation (default: true).
         #[arg(long, default_value_t = true)]
         include_tests: bool,
+
+        /// Write ingestion coverage report JSON to this path.
+        #[arg(long)]
+        coverage_report: Option<PathBuf>,
     },
 
     /// Display summary information about an .acb graph file.
@@ -125,6 +130,9 @@ pub enum Command {
     ///   prophecy   Predict which units are likely to break
     ///   stability  Stability score for a specific unit
     ///   coupling   Detect tightly coupled unit pairs
+    ///   test-gap   Identify high-risk units without adequate tests
+    ///   hotspots   Detect high-change concentration units
+    ///   dead-code  List unreachable or orphaned units
     ///
     /// Examples:
     ///   acb query project.acb symbol --name "UserService"
@@ -137,7 +145,7 @@ pub enum Command {
         file: PathBuf,
 
         /// Query type: symbol, deps, rdeps, impact, calls, similar,
-        /// prophecy, stability, coupling.
+        /// prophecy, stability, coupling, test-gap, hotspots, dead-code.
         query_type: String,
 
         /// Search string for symbol queries.
@@ -186,6 +194,38 @@ pub enum Command {
         /// Shell type (bash, zsh, fish, powershell, elvish).
         shell: Shell,
     },
+
+    /// Summarize graph health (risk, test gaps, hotspots, dead code).
+    Health {
+        /// Path to the .acb file.
+        file: PathBuf,
+
+        /// Maximum items to show per section.
+        #[arg(long, short = 'l', default_value_t = 10)]
+        limit: usize,
+    },
+
+    /// Enforce a CI risk gate for a proposed unit change.
+    Gate {
+        /// Path to the .acb file.
+        file: PathBuf,
+
+        /// Unit ID being changed.
+        #[arg(long, short = 'u')]
+        unit_id: u64,
+
+        /// Max allowed overall risk score (0.0 - 1.0).
+        #[arg(long, default_value_t = 0.60)]
+        max_risk: f32,
+
+        /// Traversal depth for impact analysis.
+        #[arg(long, short = 'd', default_value_t = 3)]
+        depth: u32,
+
+        /// Fail if impacted units without tests are present.
+        #[arg(long, default_value_t = true)]
+        require_tests: bool,
+    },
 }
 
 // ---------------------------------------------------------------------------
@@ -203,6 +243,8 @@ pub fn run(cli: Cli) -> Result<(), Box<dyn std::error::Error>> {
         Some(Command::Query { .. }) => "query",
         Some(Command::Get { .. }) => "get",
         Some(Command::Completions { .. }) => "completions",
+        Some(Command::Health { .. }) => "health",
+        Some(Command::Gate { .. }) => "gate",
     };
     let started = Instant::now();
     let result = match &cli.command {
@@ -214,7 +256,15 @@ pub fn run(cli: Cli) -> Result<(), Box<dyn std::error::Error>> {
             output,
             exclude,
             include_tests,
-        }) => cmd_compile(path, output.as_deref(), exclude, *include_tests, &cli),
+            coverage_report,
+        }) => cmd_compile(
+            path,
+            output.as_deref(),
+            exclude,
+            *include_tests,
+            coverage_report.as_deref(),
+            &cli,
+        ),
         Some(Command::Info { file }) => cmd_info(file, &cli),
         Some(Command::Query {
             file,
@@ -238,6 +288,14 @@ pub fn run(cli: Cli) -> Result<(), Box<dyn std::error::Error>> {
             clap_complete::generate(*shell, &mut cmd, "acb", &mut std::io::stdout());
             Ok(())
         }
+        Some(Command::Health { file, limit }) => cmd_health(file, *limit, &cli),
+        Some(Command::Gate {
+            file,
+            unit_id,
+            max_risk,
+            depth,
+            require_tests,
+        }) => cmd_gate(file, *unit_id, *max_risk, *depth, *require_tests, &cli),
     };
 
     emit_cli_health_ledger(command_name, started.elapsed(), result.is_ok());
@@ -344,6 +402,7 @@ fn cmd_compile(
     output: Option<&std::path::Path>,
     exclude: &[String],
     include_tests: bool,
+    coverage_report: Option<&Path>,
     cli: &Cli,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let s = styled(cli);
@@ -414,6 +473,15 @@ fn cmd_compile(
                 parse_result.stats.files_parsed,
                 parse_result.units.len(),
             );
+            let cov = &parse_result.stats.coverage;
+            eprintln!(
+                "  {} Ingestion seen:{} candidate:{} skipped:{} errored:{}",
+                s.info(),
+                cov.files_seen,
+                cov.files_candidate,
+                cov.total_skipped(),
+                parse_result.stats.files_errored
+            );
             if !parse_result.errors.is_empty() {
                 eprintln!(
                     "  {} {} parse errors (use --verbose to see details)",
@@ -470,6 +538,43 @@ fn cmd_compile(
 
     // Final output
     let file_size = std::fs::metadata(&out_path).map(|m| m.len()).unwrap_or(0);
+    let cov = &parse_result.stats.coverage;
+    let coverage_json = serde_json::json!({
+        "files_seen": cov.files_seen,
+        "files_candidate": cov.files_candidate,
+        "files_parsed": parse_result.stats.files_parsed,
+        "files_skipped_total": cov.total_skipped(),
+        "files_errored_total": parse_result.stats.files_errored,
+        "skip_reasons": {
+            "unknown_language": cov.skipped_unknown_language,
+            "language_filter": cov.skipped_language_filter,
+            "exclude_pattern": cov.skipped_excluded_pattern,
+            "too_large": cov.skipped_too_large,
+            "test_file_filtered": cov.skipped_test_file
+        },
+        "errors": {
+            "read_errors": cov.read_errors,
+            "parse_errors": cov.parse_errors
+        },
+        "parse_time_ms": parse_result.stats.parse_time_ms,
+        "by_language": parse_result.stats.by_language,
+    });
+
+    if let Some(report_path) = coverage_report {
+        if let Some(parent) = report_path.parent() {
+            if !parent.as_os_str().is_empty() {
+                std::fs::create_dir_all(parent)?;
+            }
+        }
+        let payload = serde_json::json!({
+            "status": "ok",
+            "source_root": path.display().to_string(),
+            "output_graph": out_path.display().to_string(),
+            "generated_at": chrono::Utc::now().to_rfc3339(),
+            "coverage": coverage_json,
+        });
+        std::fs::write(report_path, serde_json::to_string_pretty(&payload)? + "\n")?;
+    }
 
     let stdout = std::io::stdout();
     let mut out = stdout.lock();
@@ -495,6 +600,21 @@ fn cmd_compile(
                     s.bold(&graph.languages().len().to_string())
                 );
                 let _ = writeln!(out, "     Size:      {}", s.dim(&format_size(file_size)));
+                let _ = writeln!(
+                    out,
+                    "     Coverage:  seen={} candidate={} skipped={} errored={}",
+                    cov.files_seen,
+                    cov.files_candidate,
+                    cov.total_skipped(),
+                    parse_result.stats.files_errored
+                );
+                if let Some(report_path) = coverage_report {
+                    let _ = writeln!(
+                        out,
+                        "     Report:    {}",
+                        s.dim(&report_path.display().to_string())
+                    );
+                }
                 let _ = writeln!(out);
                 let _ = writeln!(
                     out,
@@ -516,6 +636,7 @@ fn cmd_compile(
                 "edges": graph.edge_count(),
                 "languages": graph.languages().len(),
                 "file_size_bytes": file_size,
+                "coverage": coverage_json,
             });
             let _ = writeln!(out, "{}", serde_json::to_string_pretty(&obj)?);
         }
@@ -707,6 +828,287 @@ fn cmd_info(file: &PathBuf, cli: &Cli) -> Result<(), Box<dyn std::error::Error>>
     Ok(())
 }
 
+fn cmd_health(file: &Path, limit: usize, cli: &Cli) -> Result<(), Box<dyn std::error::Error>> {
+    validate_acb_path(file)?;
+    let graph = AcbReader::read_from_file(file)?;
+    let engine = QueryEngine::new();
+    let s = styled(cli);
+
+    let prophecy = engine.prophecy(
+        &graph,
+        ProphecyParams {
+            top_k: limit,
+            min_risk: 0.45,
+        },
+    )?;
+    let test_gaps = engine.test_gap(
+        &graph,
+        TestGapParams {
+            min_changes: 5,
+            min_complexity: 10,
+            unit_types: vec![],
+        },
+    )?;
+    let hotspots = engine.hotspot_detection(
+        &graph,
+        HotspotParams {
+            top_k: limit,
+            min_score: 0.55,
+            unit_types: vec![],
+        },
+    )?;
+    let dead_code = engine.dead_code(
+        &graph,
+        DeadCodeParams {
+            unit_types: vec![],
+            include_tests_as_roots: true,
+        },
+    )?;
+
+    let high_risk = prophecy
+        .predictions
+        .iter()
+        .filter(|p| p.risk_score >= 0.70)
+        .count();
+    let avg_risk = if prophecy.predictions.is_empty() {
+        0.0
+    } else {
+        prophecy
+            .predictions
+            .iter()
+            .map(|p| p.risk_score)
+            .sum::<f32>()
+            / prophecy.predictions.len() as f32
+    };
+    let status = if high_risk >= 3 || test_gaps.len() >= 8 {
+        "fail"
+    } else if high_risk > 0 || !test_gaps.is_empty() || !hotspots.is_empty() {
+        "warn"
+    } else {
+        "pass"
+    };
+
+    let stdout = std::io::stdout();
+    let mut out = stdout.lock();
+    match cli.format {
+        OutputFormat::Text => {
+            let status_label = match status {
+                "pass" => s.green("PASS"),
+                "warn" => s.yellow("WARN"),
+                _ => s.red("FAIL"),
+            };
+            let _ = writeln!(
+                out,
+                "\n  Graph health for {} [{}]\n",
+                s.bold(&file.display().to_string()),
+                status_label
+            );
+            let _ = writeln!(out, "  Units:      {}", graph.unit_count());
+            let _ = writeln!(out, "  Edges:      {}", graph.edge_count());
+            let _ = writeln!(out, "  Avg risk:   {:.2}", avg_risk);
+            let _ = writeln!(out, "  High risk:  {}", high_risk);
+            let _ = writeln!(out, "  Test gaps:  {}", test_gaps.len());
+            let _ = writeln!(out, "  Hotspots:   {}", hotspots.len());
+            let _ = writeln!(out, "  Dead code:  {}", dead_code.len());
+            let _ = writeln!(out);
+
+            if !prophecy.predictions.is_empty() {
+                let _ = writeln!(out, "  Top risk predictions:");
+                for p in prophecy.predictions.iter().take(5) {
+                    let name = graph
+                        .get_unit(p.unit_id)
+                        .map(|u| u.qualified_name.clone())
+                        .unwrap_or_else(|| format!("unit_{}", p.unit_id));
+                    let _ = writeln!(out, "    {} {:.2} {}", s.arrow(), p.risk_score, name);
+                }
+                let _ = writeln!(out);
+            }
+
+            if !test_gaps.is_empty() {
+                let _ = writeln!(out, "  Top test gaps:");
+                for g in test_gaps.iter().take(5) {
+                    let name = graph
+                        .get_unit(g.unit_id)
+                        .map(|u| u.qualified_name.clone())
+                        .unwrap_or_else(|| format!("unit_{}", g.unit_id));
+                    let _ = writeln!(
+                        out,
+                        "    {} {:.2} {} ({})",
+                        s.arrow(),
+                        g.priority,
+                        name,
+                        g.reason
+                    );
+                }
+                let _ = writeln!(out);
+            }
+
+            let _ = writeln!(
+                out,
+                "  Next: acb gate {} --unit-id <id> --max-risk 0.60",
+                file.display()
+            );
+            let _ = writeln!(out);
+        }
+        OutputFormat::Json => {
+            let predictions = prophecy
+                .predictions
+                .iter()
+                .map(|p| {
+                    serde_json::json!({
+                        "unit_id": p.unit_id,
+                        "name": graph.get_unit(p.unit_id).map(|u| u.qualified_name.clone()).unwrap_or_default(),
+                        "risk_score": p.risk_score,
+                        "reason": p.reason,
+                    })
+                })
+                .collect::<Vec<_>>();
+            let gaps = test_gaps
+                .iter()
+                .map(|g| {
+                    serde_json::json!({
+                        "unit_id": g.unit_id,
+                        "name": graph.get_unit(g.unit_id).map(|u| u.qualified_name.clone()).unwrap_or_default(),
+                        "priority": g.priority,
+                        "reason": g.reason,
+                    })
+                })
+                .collect::<Vec<_>>();
+            let hotspot_rows = hotspots
+                .iter()
+                .map(|h| {
+                    serde_json::json!({
+                        "unit_id": h.unit_id,
+                        "name": graph.get_unit(h.unit_id).map(|u| u.qualified_name.clone()).unwrap_or_default(),
+                        "score": h.score,
+                        "factors": h.factors,
+                    })
+                })
+                .collect::<Vec<_>>();
+            let dead_rows = dead_code
+                .iter()
+                .map(|u| {
+                    serde_json::json!({
+                        "unit_id": u.id,
+                        "name": u.qualified_name,
+                        "type": u.unit_type.label(),
+                    })
+                })
+                .collect::<Vec<_>>();
+
+            let obj = serde_json::json!({
+                "status": status,
+                "graph": file.display().to_string(),
+                "summary": {
+                    "units": graph.unit_count(),
+                    "edges": graph.edge_count(),
+                    "avg_risk": avg_risk,
+                    "high_risk_count": high_risk,
+                    "test_gap_count": test_gaps.len(),
+                    "hotspot_count": hotspots.len(),
+                    "dead_code_count": dead_code.len(),
+                },
+                "risk_predictions": predictions,
+                "test_gaps": gaps,
+                "hotspots": hotspot_rows,
+                "dead_code": dead_rows,
+            });
+            let _ = writeln!(out, "{}", serde_json::to_string_pretty(&obj)?);
+        }
+    }
+
+    Ok(())
+}
+
+fn cmd_gate(
+    file: &Path,
+    unit_id: u64,
+    max_risk: f32,
+    depth: u32,
+    require_tests: bool,
+    cli: &Cli,
+) -> Result<(), Box<dyn std::error::Error>> {
+    validate_acb_path(file)?;
+    let graph = AcbReader::read_from_file(file)?;
+    let engine = QueryEngine::new();
+    let s = styled(cli);
+
+    let result = engine.impact_analysis(
+        &graph,
+        ImpactParams {
+            unit_id,
+            max_depth: depth,
+            edge_types: vec![],
+        },
+    )?;
+    let untested_count = result.impacted.iter().filter(|u| !u.has_tests).count();
+    let risk_pass = result.overall_risk <= max_risk;
+    let test_pass = !require_tests || untested_count == 0;
+    let passed = risk_pass && test_pass;
+
+    let stdout = std::io::stdout();
+    let mut out = stdout.lock();
+
+    match cli.format {
+        OutputFormat::Text => {
+            let label = if passed {
+                s.green("PASS")
+            } else {
+                s.red("FAIL")
+            };
+            let unit_name = graph
+                .get_unit(unit_id)
+                .map(|u| u.qualified_name.clone())
+                .unwrap_or_else(|| format!("unit_{}", unit_id));
+            let _ = writeln!(out, "\n  Gate {} for {}\n", label, s.bold(&unit_name));
+            let _ = writeln!(
+                out,
+                "  Overall risk:  {:.2} (max {:.2})",
+                result.overall_risk, max_risk
+            );
+            let _ = writeln!(out, "  Impacted:      {}", result.impacted.len());
+            let _ = writeln!(out, "  Untested:      {}", untested_count);
+            let _ = writeln!(out, "  Require tests: {}", require_tests);
+            if !result.recommendations.is_empty() {
+                let _ = writeln!(out);
+                for rec in &result.recommendations {
+                    let _ = writeln!(out, "  {} {}", s.info(), rec);
+                }
+            }
+            let _ = writeln!(out);
+        }
+        OutputFormat::Json => {
+            let obj = serde_json::json!({
+                "gate": if passed { "pass" } else { "fail" },
+                "file": file.display().to_string(),
+                "unit_id": unit_id,
+                "max_risk": max_risk,
+                "overall_risk": result.overall_risk,
+                "impacted_count": result.impacted.len(),
+                "untested_count": untested_count,
+                "require_tests": require_tests,
+                "recommendations": result.recommendations,
+            });
+            let _ = writeln!(out, "{}", serde_json::to_string_pretty(&obj)?);
+        }
+    }
+
+    if !passed {
+        return Err(format!(
+            "{} gate failed: risk_pass={} test_pass={} (risk {:.2} / max {:.2}, untested {})",
+            s.fail(),
+            risk_pass,
+            test_pass,
+            result.overall_risk,
+            max_risk,
+            untested_count
+        )
+        .into());
+    }
+
+    Ok(())
+}
+
 // ---------------------------------------------------------------------------
 // query
 // ---------------------------------------------------------------------------
@@ -735,6 +1137,9 @@ fn cmd_query(
         "prophecy" | "predict" | "p" => query_prophecy(&graph, &engine, limit, cli, &s),
         "stability" | "stab" => query_stability(&graph, &engine, unit_id, cli, &s),
         "coupling" | "couple" => query_coupling(&graph, &engine, unit_id, cli, &s),
+        "test-gap" | "testgap" | "gaps" => query_test_gap(&graph, &engine, limit, cli, &s),
+        "hotspot" | "hotspots" => query_hotspots(&graph, &engine, limit, cli, &s),
+        "dead" | "dead-code" | "deadcode" => query_dead_code(&graph, &engine, limit, cli, &s),
         other => {
             let known = [
                 "symbol",
@@ -746,6 +1151,9 @@ fn cmd_query(
                 "prophecy",
                 "stability",
                 "coupling",
+                "test-gap",
+                "hotspots",
+                "dead-code",
             ];
             let suggestion = known
                 .iter()
@@ -1481,6 +1889,180 @@ fn query_coupling(
                 "query": "coupling",
                 "count": results.len(),
                 "results": entries,
+            });
+            let _ = writeln!(out, "{}", serde_json::to_string_pretty(&obj)?);
+        }
+    }
+    Ok(())
+}
+
+fn query_test_gap(
+    graph: &CodeGraph,
+    engine: &QueryEngine,
+    limit: usize,
+    cli: &Cli,
+    s: &Styled,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let mut gaps = engine.test_gap(
+        graph,
+        TestGapParams {
+            min_changes: 5,
+            min_complexity: 10,
+            unit_types: vec![],
+        },
+    )?;
+    if limit > 0 {
+        gaps.truncate(limit);
+    }
+
+    let stdout = std::io::stdout();
+    let mut out = stdout.lock();
+    match cli.format {
+        OutputFormat::Text => {
+            let _ = writeln!(out, "\n  Test gaps ({} results)\n", gaps.len());
+            for g in &gaps {
+                let name = graph
+                    .get_unit(g.unit_id)
+                    .map(|u| u.qualified_name.as_str())
+                    .unwrap_or("?");
+                let _ = writeln!(
+                    out,
+                    "  {} {} priority:{:.2} {}",
+                    s.arrow(),
+                    s.cyan(name),
+                    g.priority,
+                    s.dim(&g.reason)
+                );
+            }
+            let _ = writeln!(out);
+        }
+        OutputFormat::Json => {
+            let rows = gaps
+                .iter()
+                .map(|g| {
+                    serde_json::json!({
+                        "unit_id": g.unit_id,
+                        "name": graph.get_unit(g.unit_id).map(|u| u.qualified_name.clone()).unwrap_or_default(),
+                        "priority": g.priority,
+                        "reason": g.reason,
+                    })
+                })
+                .collect::<Vec<_>>();
+            let obj = serde_json::json!({
+                "query": "test-gap",
+                "count": rows.len(),
+                "results": rows,
+            });
+            let _ = writeln!(out, "{}", serde_json::to_string_pretty(&obj)?);
+        }
+    }
+    Ok(())
+}
+
+fn query_hotspots(
+    graph: &CodeGraph,
+    engine: &QueryEngine,
+    limit: usize,
+    cli: &Cli,
+    s: &Styled,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let hotspots = engine.hotspot_detection(
+        graph,
+        HotspotParams {
+            top_k: limit,
+            min_score: 0.55,
+            unit_types: vec![],
+        },
+    )?;
+
+    let stdout = std::io::stdout();
+    let mut out = stdout.lock();
+    match cli.format {
+        OutputFormat::Text => {
+            let _ = writeln!(out, "\n  Hotspots ({} results)\n", hotspots.len());
+            for h in &hotspots {
+                let name = graph
+                    .get_unit(h.unit_id)
+                    .map(|u| u.qualified_name.as_str())
+                    .unwrap_or("?");
+                let _ = writeln!(out, "  {} {} score:{:.2}", s.arrow(), s.cyan(name), h.score);
+            }
+            let _ = writeln!(out);
+        }
+        OutputFormat::Json => {
+            let rows = hotspots
+                .iter()
+                .map(|h| {
+                    serde_json::json!({
+                        "unit_id": h.unit_id,
+                        "name": graph.get_unit(h.unit_id).map(|u| u.qualified_name.clone()).unwrap_or_default(),
+                        "score": h.score,
+                        "factors": h.factors,
+                    })
+                })
+                .collect::<Vec<_>>();
+            let obj = serde_json::json!({
+                "query": "hotspots",
+                "count": rows.len(),
+                "results": rows,
+            });
+            let _ = writeln!(out, "{}", serde_json::to_string_pretty(&obj)?);
+        }
+    }
+    Ok(())
+}
+
+fn query_dead_code(
+    graph: &CodeGraph,
+    engine: &QueryEngine,
+    limit: usize,
+    cli: &Cli,
+    s: &Styled,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let mut dead = engine.dead_code(
+        graph,
+        DeadCodeParams {
+            unit_types: vec![],
+            include_tests_as_roots: true,
+        },
+    )?;
+    if limit > 0 {
+        dead.truncate(limit);
+    }
+
+    let stdout = std::io::stdout();
+    let mut out = stdout.lock();
+    match cli.format {
+        OutputFormat::Text => {
+            let _ = writeln!(out, "\n  Dead code ({} results)\n", dead.len());
+            for unit in &dead {
+                let _ = writeln!(
+                    out,
+                    "  {} {} {}",
+                    s.arrow(),
+                    s.cyan(&unit.qualified_name),
+                    s.dim(&format!("({})", unit.unit_type.label()))
+                );
+            }
+            let _ = writeln!(out);
+        }
+        OutputFormat::Json => {
+            let rows = dead
+                .iter()
+                .map(|u| {
+                    serde_json::json!({
+                        "unit_id": u.id,
+                        "name": u.qualified_name,
+                        "unit_type": u.unit_type.label(),
+                        "file": u.file_path.display().to_string(),
+                        "line": u.span.start_line,
+                    })
+                })
+                .collect::<Vec<_>>();
+            let obj = serde_json::json!({
+                "query": "dead-code",
+                "count": rows.len(),
+                "results": rows,
             });
             let _ = writeln!(out, "{}", serde_json::to_string_pretty(&obj)?);
         }

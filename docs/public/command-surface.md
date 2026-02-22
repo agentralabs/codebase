@@ -15,7 +15,24 @@ acb info
 acb query
 acb get
 acb completions
+acb health
+acb gate
 ```
+
+## `acb compile`
+
+```bash
+acb compile <repo-path> -o graph.acb
+acb compile <repo-path> --exclude "target" --exclude "node_modules"
+acb compile <repo-path> --coverage-report coverage.json
+```
+
+Common options:
+
+- `--output <file.acb>`
+- `--exclude <glob>` (repeatable)
+- `--include-tests`
+- `--coverage-report <path>`
 
 ## `acb query` types
 
@@ -29,7 +46,28 @@ acb query <file.acb> similar
 acb query <file.acb> prophecy
 acb query <file.acb> stability
 acb query <file.acb> coupling
+acb query <file.acb> test-gap
+acb query <file.acb> hotspots
+acb query <file.acb> dead-code
 ```
+
+## `acb health`
+
+```bash
+acb health <file.acb>
+acb health <file.acb> --limit 20 --format json
+```
+
+Returns graph-wide risk, test gaps, hotspots, and dead-code summary.
+
+## `acb gate`
+
+```bash
+acb gate <file.acb> --unit-id 42
+acb gate <file.acb> --unit-id 42 --max-risk 0.55 --depth 4 --require-tests
+```
+
+Fails with non-zero exit if risk/test criteria are not met (CI-friendly).
 
 ## `acb-mcp`
 
