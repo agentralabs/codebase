@@ -123,6 +123,8 @@ acb query project.acb prophecy --limit 10
 acb-mcp
 ```
 
+`acb-mcp` accepts both line-delimited JSON-RPC and `Content-Length` framed MCP stdio messages.
+
 Configure in Claude Desktop (`claude_desktop_config.json`):
 
 ```json
