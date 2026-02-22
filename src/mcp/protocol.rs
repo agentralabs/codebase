@@ -11,8 +11,9 @@ use serde_json::Value;
 pub struct JsonRpcRequest {
     /// Must be "2.0".
     pub jsonrpc: String,
-    /// Request ID (number or string).
-    pub id: Value,
+    /// Request ID (number or string). Absent for notifications.
+    #[serde(default)]
+    pub id: Option<Value>,
     /// Method name.
     pub method: String,
     /// Method parameters (optional).
@@ -25,7 +26,7 @@ impl JsonRpcRequest {
     pub fn new(id: impl Into<Value>, method: impl Into<String>) -> Self {
         Self {
             jsonrpc: "2.0".to_string(),
-            id: id.into(),
+            id: Some(id.into()),
             method: method.into(),
             params: Value::Null,
         }
@@ -35,7 +36,7 @@ impl JsonRpcRequest {
     pub fn with_params(id: impl Into<Value>, method: impl Into<String>, params: Value) -> Self {
         Self {
             jsonrpc: "2.0".to_string(),
-            id: id.into(),
+            id: Some(id.into()),
             method: method.into(),
             params,
         }
@@ -153,7 +154,7 @@ pub fn parse_request(raw: &str) -> Result<JsonRpcRequest, JsonRpcResponse> {
 
     if request.jsonrpc != "2.0" {
         return Err(JsonRpcResponse::error(
-            request.id,
+            request.id.unwrap_or(Value::Null),
             JsonRpcError::invalid_request("jsonrpc must be \"2.0\""),
         ));
     }

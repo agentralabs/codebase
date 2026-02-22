@@ -95,7 +95,7 @@ fn test_parse_valid_request() {
     let raw = r#"{"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}"#;
     let request = parse_request(raw).unwrap();
     assert_eq!(request.method, "initialize");
-    assert_eq!(request.id, json!(1));
+    assert_eq!(request.id, Some(json!(1)));
 }
 
 #[test]

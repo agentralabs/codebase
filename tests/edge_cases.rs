@@ -141,6 +141,14 @@ fn edge_missing_jsonrpc_field() {
 }
 
 #[test]
+fn edge_notification_without_id_is_accepted() {
+    let raw = r#"{"jsonrpc":"2.0","method":"notifications/initialized","params":{}}"#;
+    let request = parse_request(raw).unwrap();
+    assert!(request.id.is_none());
+    assert_eq!(request.method, "notifications/initialized");
+}
+
+#[test]
 fn edge_empty_method_name() {
     let mut server = create_server();
     let response = send(
@@ -165,12 +173,18 @@ fn edge_string_id_in_request() {
 #[test]
 fn edge_null_id_in_request() {
     let mut server = create_server();
-    let response = send(
-        &mut server,
-        &json!({"jsonrpc":"2.0","id":null,"method":"tools/list","params":{}}),
-    );
-    // Null ID is valid in JSON-RPC (notification-like but with response).
-    assert!(response.get("result").is_some() || response.get("error").is_some());
+    let response_str =
+        server.handle_raw(r#"{"jsonrpc":"2.0","id":null,"method":"tools/list","params":{}}"#);
+    assert!(response_str.is_empty());
+}
+
+#[test]
+fn edge_notifications_emit_no_response_frame() {
+    let mut server = create_server();
+    let response_str =
+        server.handle_raw(r#"{"jsonrpc":"2.0","method":"notifications/initialized","params":{}}"#);
+    assert!(response_str.is_empty());
+    assert!(server.is_initialized());
 }
 
 #[test]

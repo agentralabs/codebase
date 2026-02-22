@@ -143,6 +143,9 @@ fn run_stdio(graph_path: Option<&str>, graph_name: Option<String>) {
         }
 
         let response = server.handle_raw(trimmed);
+        if response.is_empty() {
+            continue;
+        }
         if writeln!(stdout, "{}", response).is_err() {
             break;
         }

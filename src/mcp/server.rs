@@ -76,7 +76,13 @@ impl McpServer {
     /// returns the serialised JSON-RPC response.
     pub fn handle_raw(&mut self, raw: &str) -> String {
         let response = match super::protocol::parse_request(raw) {
-            Ok(request) => self.handle_request(request),
+            Ok(request) => {
+                if request.id.is_none() {
+                    self.handle_notification(&request.method, &request.params);
+                    return String::new();
+                }
+                self.handle_request(request)
+            }
             Err(error_response) => error_response,
         };
         serde_json::to_string(&response).unwrap_or_else(|_| {
@@ -87,7 +93,7 @@ impl McpServer {
 
     /// Handle a parsed JSON-RPC request.
     pub fn handle_request(&mut self, request: JsonRpcRequest) -> JsonRpcResponse {
-        let id = request.id.clone();
+        let id = request.id.clone().unwrap_or(Value::Null);
         match request.method.as_str() {
             "initialize" => self.handle_initialize(id, &request.params),
             "shutdown" => self.handle_shutdown(id),
@@ -97,6 +103,15 @@ impl McpServer {
             "resources/read" => self.handle_resources_read(id, &request.params),
             "prompts/list" => self.handle_prompts_list(id),
             _ => JsonRpcResponse::error(id, JsonRpcError::method_not_found(&request.method)),
+        }
+    }
+
+    /// Handle JSON-RPC notifications (messages without an `id`).
+    ///
+    /// Notification methods intentionally produce no response frame.
+    fn handle_notification(&mut self, method: &str, _params: &Value) {
+        if method == "notifications/initialized" {
+            self.initialized = true;
         }
     }
 
