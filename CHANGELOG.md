@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.2] - 2026-02-23
+
+### Fixed
+- MCP `list_units` now enforces and validates `unit_type` filters consistently.
+- MCP `impact_analysis` now includes full dependency coverage across containment/semantic edges.
+- Added regression tests to lock both MCP fixes for future releases.
+
 ## [0.1.1] - 2026-02-22
 
 ### Fixed
