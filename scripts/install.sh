@@ -283,30 +283,179 @@ install_mcp_entrypoint() {
     fi
 
     mkdir -p "${INSTALL_DIR}"
-    cat >"${MCP_ENTRYPOINT}" <<EOF
+cat >"${MCP_ENTRYPOINT}" <<EOF
 #!/usr/bin/env bash
 set -eo pipefail
 
 BIN="${INSTALL_DIR}/${BINARY_NAME}"
+ACB_BIN="${INSTALL_DIR}/acb"
 
-find_graph() {
+pwd_is_project() {
+    [ -d "\$PWD/.git" ] || \
+    [ -f "\$PWD/Cargo.toml" ] || \
+    [ -f "\$PWD/package.json" ] || \
+    [ -f "\$PWD/pyproject.toml" ] || \
+    [ -f "\$PWD/go.mod" ] || \
+    [ -d "\$PWD/src" ]
+}
+
+pwd_contains_projects() {
+    find "\$PWD" -maxdepth 2 -type f \
+        \\( -name 'Cargo.toml' -o -name 'package.json' -o -name 'pyproject.toml' -o -name 'go.mod' \\) \
+        -print -quit 2>/dev/null | grep -q .
+}
+
+resolve_repo_root() {
+    if [ -n "\${AGENTRA_WORKSPACE_ROOT:-}" ] && [ -d "\${AGENTRA_WORKSPACE_ROOT}" ]; then
+        printf '%s' "\${AGENTRA_WORKSPACE_ROOT}"
+        return
+    fi
+    if [ -n "\${AGENTRA_PROJECT_ROOT:-}" ] && [ -d "\${AGENTRA_PROJECT_ROOT}" ]; then
+        printf '%s' "\${AGENTRA_PROJECT_ROOT}"
+        return
+    fi
+    if pwd_is_project || pwd_contains_projects; then
+        printf '%s' "\$PWD"
+        return
+    fi
+    if command -v git >/dev/null 2>&1; then
+        local root
+        root="\$(git rev-parse --show-toplevel 2>/dev/null || true)"
+        if [ -n "\$root" ] && [ -d "\$root" ]; then
+            if [ "\$root" = "\$HOME" ] || [ "\$root" = "\$HOME/Documents" ] || [ "\$root" = "\$HOME/Desktop" ]; then
+                printf '%s' "\$PWD"
+                return
+            fi
+            printf '%s' "\$root"
+            return
+        fi
+    fi
+    printf '%s' "\$PWD"
+}
+
+slugify() {
+    local raw="\$1"
+    local base
+    base="\$(basename "\$raw")"
+    base="\$(printf '%s' "\$base" | tr '[:upper:]' '[:lower:]')"
+    base="\$(printf '%s' "\$base" | sed -E 's/[^a-z0-9._-]+/-/g; s/^-+//; s/-+\$//')"
+    if [ -z "\$base" ]; then
+        base="workspace"
+    fi
+    printf '%s' "\$base"
+}
+
+can_index_repo() {
+    local repo_root="\$1"
+    if [ "\$repo_root" = "\$HOME" ]; then
+        return 1
+    fi
+    if command -v git >/dev/null 2>&1 && git -C "\$repo_root" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+        return 0
+    fi
+    find "\$repo_root" -maxdepth 2 -type f \
+        \\( -name '*.rs' -o -name '*.py' -o -name '*.ts' -o -name '*.tsx' -o -name '*.js' -o -name '*.jsx' \
+        -o -name '*.go' -o -name '*.java' -o -name '*.c' -o -name '*.cc' -o -name '*.cpp' -o -name '*.h' -o -name '*.hpp' \\) \
+        -print -quit 2>/dev/null | grep -q .
+}
+
+graph_is_stale() {
+    local repo_root="\$1"
+    local graph_path="\$2"
+    [ ! -f "\$graph_path" ] && return 0
+    find "\$repo_root" \
+        \\( -name .git -o -name target -o -name node_modules -o -name .venv -o -name venv -o -name dist -o -name build -o -name .next \\) -prune -o \
+        -type f \
+        \\( -name '*.rs' -o -name '*.py' -o -name '*.ts' -o -name '*.tsx' -o -name '*.js' -o -name '*.jsx' \
+        -o -name '*.go' -o -name '*.java' -o -name '*.c' -o -name '*.cc' -o -name '*.cpp' -o -name '*.h' -o -name '*.hpp' \\) \
+        -newer "\$graph_path" -print -quit 2>/dev/null | grep -q .
+}
+
+compile_graph_if_needed() {
+    local repo_root="\$1"
+    local graph_path="\$2"
+    if ! can_index_repo "\$repo_root"; then
+        return 0
+    fi
+    if [ -f "\$graph_path" ] && ! graph_is_stale "\$repo_root" "\$graph_path"; then
+        return 0
+    fi
+
+    local lock_dir="\${graph_path}.lock"
+    local wait_count=0
+    while ! mkdir "\$lock_dir" 2>/dev/null; do
+        wait_count=\$((wait_count + 1))
+        if [ "\$wait_count" -ge 90 ]; then
+            echo "Warning: graph build lock timeout for \$graph_path" >&2
+            return 0
+        fi
+        sleep 1
+    done
+    trap 'rmdir "'"'\$lock_dir'"'" >/dev/null 2>&1 || true' RETURN
+
+    if [ -f "\$graph_path" ] && ! graph_is_stale "\$repo_root" "\$graph_path"; then
+        return 0
+    fi
+    mkdir -p "\$(dirname "\$graph_path")"
+    if [ -x "\$ACB_BIN" ]; then
+        "\$ACB_BIN" compile "\$repo_root" -o "\$graph_path" >/dev/null 2>&1 || true
+    elif command -v acb >/dev/null 2>&1; then
+        acb compile "\$repo_root" -o "\$graph_path" >/dev/null 2>&1 || true
+    fi
+    if [ ! -f "\$graph_path" ]; then
+        echo "Error: unable to build code graph for \$repo_root" >&2
+        return 1
+    fi
+}
+
+latest_cached_graph() {
+    local graph_dir="\$1"
+    if [ -d "\$graph_dir" ]; then
+        find "\$graph_dir" -maxdepth 1 -type f -name '*.acb' -print0 2>/dev/null \
+            | xargs -0 ls -1t 2>/dev/null | head -n 1
+    fi
+}
+
+resolve_graph() {
     local candidate
-    local found=""
-
-    for candidate in \
-        "\${AGENTRA_ACB_PATH:-}" \
-        "\${AGENTRA_GRAPH_PATH:-}" \
-        "\${CODEX_HOME:-\$HOME/.codex}/graphs/agentralabs-tech.acb" \
-        "\$HOME/.agentra/graphs/default.acb" \
-        "\$PWD/agentralabs-tech.acb" \
-        "\$PWD/graph.acb"; do
+    local explicit
+    explicit=""
+    for candidate in "\${AGENTRA_ACB_PATH:-}" "\${AGENTRA_GRAPH_PATH:-}"; do
         if [ -n "\$candidate" ] && [ -f "\$candidate" ]; then
-            found="\$candidate"
+            explicit="\$candidate"
             break
         fi
     done
+    if [ -n "\$explicit" ]; then
+        printf '%s' "\$explicit"
+        return
+    fi
 
-    [ -n "\$found" ] && printf '%s' "\$found"
+    local repo_root repo_slug graph_dir graph_path fallback
+    repo_root="\$(resolve_repo_root)"
+    repo_slug="\$(slugify "\$repo_root")"
+    graph_dir="\${AGENTRA_GRAPH_CACHE_DIR:-\${CODEX_HOME:-\$HOME/.codex}/graphs}"
+    graph_path="\${graph_dir}/\${repo_slug}.acb"
+
+    if compile_graph_if_needed "\$repo_root" "\$graph_path"; then
+        if [ -f "\$graph_path" ]; then
+            printf '%s' "\$graph_path"
+            return
+        fi
+    fi
+
+    fallback="\$(latest_cached_graph "\$graph_dir")"
+    if [ -n "\$fallback" ] && [ -f "\$fallback" ]; then
+        printf '%s' "\$fallback"
+        return
+    fi
+
+    for candidate in "\$HOME/.agentra/graphs/default.acb" "\$PWD/graph.acb"; do
+        if [ -f "\$candidate" ]; then
+            printf '%s' "\$candidate"
+            break
+        fi
+    done
 }
 
 args=("\$@")
@@ -326,11 +475,11 @@ for arg in "\${args[@]}"; do
 done
 
 if [ "\$has_graph" -eq 0 ]; then
-    graph_path="\$(find_graph || true)"
+    graph_path="\$(resolve_graph || true)"
     if [ -n "\$graph_path" ]; then
         args=(--graph "\$graph_path" "\${args[@]}")
         if [ "\$has_name" -eq 0 ]; then
-            graph_name="\$(basename "\$graph_path" .acb)"
+            graph_name="\$(basename "\$graph_path" .acb | sed -E 's/[^a-zA-Z0-9._-]+/-/g')"
             args=(--name "\$graph_name" "\${args[@]}")
         fi
     fi

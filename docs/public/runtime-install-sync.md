@@ -36,6 +36,21 @@ Install complete: AgenticCodebase (<profile>)
 }
 ```
 
+## Workspace auto-indexing behavior
+
+- Installer writes `acb-mcp-agentra` launcher as MCP entrypoint.
+- On every start, launcher resolves active workspace and graph in this order:
+1. Explicit override: `AGENTRA_ACB_PATH` / `AGENTRA_GRAPH_PATH`.
+2. Active workspace root (`AGENTRA_WORKSPACE_ROOT` / `AGENTRA_PROJECT_ROOT` / current project dir).
+3. Cached per-workspace graph: `${CODEX_HOME:-~/.codex}/graphs/<workspace-slug>.acb`.
+4. Latest cached fallback graph if workspace resolution is unavailable.
+- If the per-workspace graph is missing or stale, launcher rebuilds it automatically with a lock to avoid parallel rebuild races.
+- If your MCP client starts outside the project directory, set:
+
+```bash
+export AGENTRA_WORKSPACE_ROOT="/absolute/path/to/project"
+```
+
 ## Server auth + sync
 
 ```bash
