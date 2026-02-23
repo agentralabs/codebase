@@ -400,6 +400,34 @@ graph_is_stale() {
         -newer "\$graph_path" -print -quit 2>/dev/null | grep -q .
 }
 
+lock_mtime_epoch() {
+    local lock_dir="\$1"
+    stat -f %m "\$lock_dir" 2>/dev/null || stat -c %Y "\$lock_dir" 2>/dev/null || echo 0
+}
+
+lock_is_stale() {
+    local lock_dir="\$1"
+    local pid_file="\${lock_dir}/pid"
+    local lock_pid now mtime age max_age
+    max_age="\${AGENTRA_GRAPH_LOCK_STALE_SECS:-300}"
+
+    if [ ! -d "\$lock_dir" ]; then
+        return 1
+    fi
+
+    if [ -f "\$pid_file" ]; then
+        lock_pid="\$(cat "\$pid_file" 2>/dev/null || true)"
+        if [ -n "\$lock_pid" ] && kill -0 "\$lock_pid" 2>/dev/null; then
+            return 1
+        fi
+    fi
+
+    now="\$(date +%s)"
+    mtime="\$(lock_mtime_epoch "\$lock_dir")"
+    age=\$((now - mtime))
+    [ "\$age" -ge "\$max_age" ]
+}
+
 compile_graph_if_needed() {
     local repo_root="\$1"
     local graph_path="\$2"
@@ -411,16 +439,41 @@ compile_graph_if_needed() {
     fi
 
     local lock_dir="\${graph_path}.lock"
+    local pid_file="\${lock_dir}/pid"
     local wait_count=0
-    while ! mkdir "\$lock_dir" 2>/dev/null; do
+    local max_wait="\${AGENTRA_GRAPH_LOCK_WAIT_SECS:-90}"
+
+    acquire_lock() {
+        mkdir "\$lock_dir" 2>/dev/null || return 1
+        printf '%s\n' "\$\$" > "\$pid_file" 2>/dev/null || true
+        return 0
+    }
+
+    release_lock() {
+        rm -f "\$pid_file" >/dev/null 2>&1 || true
+        rmdir "\$lock_dir" >/dev/null 2>&1 || true
+    }
+
+    while ! acquire_lock; do
+        if lock_is_stale "\$lock_dir"; then
+            rm -rf "\$lock_dir" >/dev/null 2>&1 || true
+            continue
+        fi
         wait_count=\$((wait_count + 1))
-        if [ "\$wait_count" -ge 90 ]; then
-            echo "Warning: graph build lock timeout for \$graph_path" >&2
+        if [ "\$wait_count" -ge "\$max_wait" ]; then
+            echo "Warning: graph build lock timeout for \$graph_path (waited \${max_wait}s)" >&2
+            if [ -f "\$graph_path" ] && ! graph_is_stale "\$repo_root" "\$graph_path"; then
+                return 0
+            fi
+            if lock_is_stale "\$lock_dir"; then
+                rm -rf "\$lock_dir" >/dev/null 2>&1 || true
+                continue
+            fi
             return 0
         fi
         sleep 1
     done
-    trap 'rmdir "'"'\$lock_dir'"'" >/dev/null 2>&1 || true' RETURN
+    trap 'release_lock' RETURN
 
     if [ -f "\$graph_path" ] && ! graph_is_stale "\$repo_root" "\$graph_path"; then
         return 0
