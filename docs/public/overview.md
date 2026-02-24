@@ -8,6 +8,19 @@ AgenticCodebase compiles source code into a portable `.acb` graph for fast struc
 - Query symbols, dependencies, impact, calls, similarity, stability, and coupling.
 - Expose the graph through MCP with `acb-mcp`.
 
+## Why teams adopt AgenticCodebase
+
+Teams adopt AgenticCodebase because it closes both the original and current code-intelligence gaps:
+
+- Foundational problems already solved: no repository-wide map, weak structural navigation, unknown blast radius, hidden coupling, test blind spots, missing risk gates, no durable artifact governance, and no universal MCP surface.
+- New high-scale problems now solved: topology blindness across large repos, safer impact analysis before change, coupling/test-gap risk visibility in CI, multi-language boundary awareness, dependency/build drift detection, and ongoing spec-to-code drift checks.
+- Practical outcome for teams: faster review cycles, safer refactors, fewer production surprises, and repeatable decisions across local, desktop, and server runtimes.
+
+For full reference mapping, see:
+
+- [Initial Problem Coverage](initial-problem-coverage.md)
+- [Primary Problem Coverage](primary-problem-coverage.md)
+
 ## Artifact
 
 - Primary artifact: `.acb`
@@ -20,3 +33,5 @@ AgenticCodebase compiles source code into a portable `.acb` graph for fast struc
 - [Command Surface](command-surface.md)
 - [Runtime and Sync](runtime-install-sync.md)
 - [Integration Guide](integration-guide.md)
+- [Primary Problem Coverage](primary-problem-coverage.md)
+- [Initial Problem Coverage](initial-problem-coverage.md)
