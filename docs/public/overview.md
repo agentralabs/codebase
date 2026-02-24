@@ -20,10 +20,7 @@ Teams adopt AgenticCodebase because it closes both the original and current code
 - New high-scale problems now solved: topology blindness across large repos, safer impact analysis before change, coupling/test-gap risk visibility in CI, multi-language boundary awareness, dependency/build drift detection, and ongoing spec-to-code drift checks.
 - Practical outcome for teams: faster review cycles, safer refactors, fewer production surprises, and repeatable decisions across local, desktop, and server runtimes.
 
-For full reference mapping, see:
-
-- [Initial Problem Coverage](initial-problem-coverage.md)
-- [Primary Problem Coverage](primary-problem-coverage.md)
+For a detailed before-and-after view, see [Experience With vs Without](experience-with-vs-without.md).
 
 ## Artifact
 
@@ -37,5 +34,9 @@ For full reference mapping, see:
 - [Command Surface](command-surface.md)
 - [Runtime and Sync](runtime-install-sync.md)
 - [Integration Guide](integration-guide.md)
-- [Primary Problem Coverage](primary-problem-coverage.md)
-- [Initial Problem Coverage](initial-problem-coverage.md)
+- [Experience With vs Without](experience-with-vs-without.md)
+
+## Works with
+
+- **AgenticMemory** — link code-graph nodes to memory decisions for traceable reasoning across refactors.
+- **AgenticVision** — pair `.acb` code graphs with `.avis` screenshots to connect code changes to UI regressions.

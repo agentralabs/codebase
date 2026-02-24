@@ -153,13 +153,37 @@ Configure in Claude Desktop (`claude_desktop_config.json`):
   "mcpServers": {
     "agentic-codebase": {
       "command": "acb-mcp",
-      "args": []
+      "args": ["serve"]
     }
   }
 }
 ```
 
 See the [Full Install Guide](INSTALL.md) for VS Code, Cursor, and Windsurf configuration.
+
+---
+
+## Common Workflows
+
+1. **Pre-refactor safety check** -- Before changing a function, see all callers, tests, and downstream dependencies:
+   ```bash
+   acb query project.acb impact --unit-id 42 --depth 5
+   ```
+
+2. **Find hidden coupling** -- Before splitting a module, discover non-obvious dependencies between units:
+   ```bash
+   acb query project.acb coupling
+   ```
+
+3. **Assess refactor risk** -- Before a large migration, predict which units are most likely to break:
+   ```bash
+   acb query project.acb prophecy --limit 10
+   ```
+
+4. **Verify test coverage gaps** -- In CI, find public functions without test edges:
+   ```bash
+   acb query project.acb test-gap
+   ```
 
 ---
 
@@ -346,6 +370,14 @@ All three share the MCP protocol for seamless AI agent integration. Run all thre
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup and guidelines.
+
+## Privacy and Security
+
+- All graphs stay local in `.acb` files -- no telemetry, no cloud sync by default.
+- `.acb` files contain structural metadata (symbols, edges, relationships), not raw source code.
+- Gate checks (`acb gate`) enforce risk thresholds and test-coverage requirements before merges.
+- Server mode requires an explicit `AGENTIC_TOKEN` environment variable for bearer auth.
+- Budget governance prevents unbounded artifact growth with 20-year projection and backup rollup.
 
 ## License
 
