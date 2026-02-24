@@ -83,6 +83,50 @@ Loaded graphs expose resources via `acb://` URIs:
 
 ---
 
+## Agentic Flow Examples
+
+Once the MCP server is running, your AI agent has access to code analysis tools. Here are example prompts and the tool chains they trigger.
+
+### Compile and explore
+
+Prompt your agent with:
+
+> Compile this repository and tell me what you find. What are the main entry points? Show me the most important functions by connectivity.
+
+The agent calls `acb_compile` to build the graph, then uses `symbol_lookup` and `list_units` to explore.
+
+### Pre-refactor safety
+
+> I want to refactor the UserService class. Before I change anything, tell me: what calls it, what it depends on, and what tests cover it?
+
+The agent runs `symbol_lookup` then `impact_analysis` to trace callers, dependencies, and test coverage. You get a risk assessment before writing any code.
+
+### Code review assistant
+
+> I changed the payment processing module. What else in the codebase might be affected? Are there hidden couplings I should worry about?
+
+The agent uses impact analysis and coupling queries to find downstream effects and non-obvious dependencies.
+
+### Architecture overview
+
+> Give me a high-level overview of this codebase. What are the main modules, how do they relate, and where are the hotspots?
+
+The agent combines `list_units` (filtered by module), `deps`, and `hotspots` queries to build a structural picture.
+
+### Key tools available to your agent
+
+| Tool | What it does |
+|:---|:---|
+| `acb_compile` | Build a `.acb` graph from source code |
+| `symbol_lookup` | Find functions/classes/modules by name |
+| `impact_analysis` | "What breaks if I change this?" |
+| `list_units` | Browse the code structure |
+| `graph_stats` | Get overview metrics |
+
+The graph persists in a `.acb` file across sessions. Your agent does not need to recompile every time.
+
+---
+
 ## CI/CD Integration
 
 AgenticCodebase is designed for automated pipelines. All commands support `--format json` for machine-readable output.
