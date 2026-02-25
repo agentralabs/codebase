@@ -7,7 +7,7 @@ use serde_json::{json, Value};
 
 use agentic_codebase::graph::CodeGraph;
 use agentic_codebase::mcp::server::McpServer;
-use agentic_codebase::types::{CodeUnit, CodeUnitType, Edge, EdgeType, Language, Span};
+use agentic_codebase::types::{CodeUnit, CodeUnitType, Language, Span};
 
 // ─────────────────────── helpers ───────────────────────
 
