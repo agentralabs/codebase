@@ -4,7 +4,7 @@ name = "agentic-codebase"
 version = "0.1.5"
 edition = "2021"
 license = "MIT"
-repository = "https://github.com/agentralabs/codebase"
+repository = "https://github.com/agentralabs/agentic-codebase"
 homepage = "https://agentralabs.tech"
 documentation = "https://docs.rs/agentic-codebase"
 authors = ["Omoshola Owolabi"]
@@ -12,7 +12,7 @@ description = "Semantic code compiler for AI agents - transforms codebases into 
 readme = "README.md"
 keywords = ["ai", "agents", "code-analysis", "semantic-graph", "mcp"]
 categories = ["development-tools", "parsing"]
-exclude = [".DS_Store", "planning-docs/", "target/"]
+exclude = [".DS_Store", "planning-docs/", "target/", "npm/wasm"]
 
 [lib]
 name = "agentic_codebase"

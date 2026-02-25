@@ -22,6 +22,15 @@ const SERVER_VERSION: &str = "0.1.0";
 /// MCP protocol version supported.
 const PROTOCOL_VERSION: &str = "2024-11-05";
 
+/// Record of a tool call or analysis context entry.
+#[derive(Debug, Clone)]
+pub struct OperationRecord {
+    pub tool_name: String,
+    pub summary: String,
+    pub timestamp: u64,
+    pub graph_name: Option<String>,
+}
+
 /// A synchronous MCP server that handles JSON-RPC 2.0 messages.
 ///
 /// Holds loaded code graphs and dispatches tool/resource/prompt requests
@@ -34,6 +43,10 @@ pub struct McpServer {
     engine: QueryEngine,
     /// Whether the server has been initialised.
     initialized: bool,
+    /// Log of operations with context for this session.
+    operation_log: Vec<OperationRecord>,
+    /// Timestamp when this session started.
+    session_start_time: Option<u64>,
 }
 
 impl McpServer {
@@ -62,6 +75,8 @@ impl McpServer {
             graphs: HashMap::new(),
             engine: QueryEngine::new(),
             initialized: false,
+            operation_log: Vec::new(),
+            session_start_time: None,
         }
     }
 
@@ -142,6 +157,13 @@ impl McpServer {
     /// Handle the "initialize" method.
     fn handle_initialize(&mut self, id: Value, _params: &Value) -> JsonRpcResponse {
         self.initialized = true;
+        self.session_start_time = Some(
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap_or_default()
+                .as_secs(),
+        );
+        self.operation_log.clear();
         JsonRpcResponse::success(
             id,
             json!({
@@ -226,6 +248,32 @@ impl McpServer {
                                 "limit": { "type": "integer", "default": 50 }
                             }
                         }
+                    },
+                    {
+                        "name": "analysis_log",
+                        "description": "Log the intent and context behind a code analysis. Call this to record WHY you are performing a lookup or analysis.",
+                        "inputSchema": {
+                            "type": "object",
+                            "properties": {
+                                "intent": {
+                                    "type": "string",
+                                    "description": "Why you are analysing — the goal or reason for the code query"
+                                },
+                                "finding": {
+                                    "type": "string",
+                                    "description": "What you found or concluded from the analysis"
+                                },
+                                "graph": {
+                                    "type": "string",
+                                    "description": "Optional graph name this analysis relates to"
+                                },
+                                "topic": {
+                                    "type": "string",
+                                    "description": "Optional topic or category (e.g., 'refactoring', 'bug-hunt')"
+                                }
+                            },
+                            "required": ["intent"]
+                        }
                     }
                 ]
             }),
@@ -233,7 +281,7 @@ impl McpServer {
     }
 
     /// Handle "tools/call".
-    fn handle_tools_call(&self, id: Value, params: &Value) -> JsonRpcResponse {
+    fn handle_tools_call(&mut self, id: Value, params: &Value) -> JsonRpcResponse {
         let tool_name = match params.get("name").and_then(|v| v.as_str()) {
             Some(name) => name,
             None => {
@@ -249,16 +297,38 @@ impl McpServer {
             .cloned()
             .unwrap_or(Value::Object(serde_json::Map::new()));
 
-        match tool_name {
-            "symbol_lookup" => self.tool_symbol_lookup(id, &arguments),
-            "impact_analysis" => self.tool_impact_analysis(id, &arguments),
-            "graph_stats" => self.tool_graph_stats(id, &arguments),
-            "list_units" => self.tool_list_units(id, &arguments),
-            _ => JsonRpcResponse::error(
-                id,
-                JsonRpcError::method_not_found(format!("Unknown tool: {}", tool_name)),
-            ),
-        }
+        let result = match tool_name {
+            "symbol_lookup" => self.tool_symbol_lookup(id.clone(), &arguments),
+            "impact_analysis" => self.tool_impact_analysis(id.clone(), &arguments),
+            "graph_stats" => self.tool_graph_stats(id.clone(), &arguments),
+            "list_units" => self.tool_list_units(id.clone(), &arguments),
+            "analysis_log" => return self.tool_analysis_log(id, &arguments),
+            _ => {
+                return JsonRpcResponse::error(
+                    id,
+                    JsonRpcError::method_not_found(format!("Unknown tool: {}", tool_name)),
+                );
+            }
+        };
+
+        // Auto-log the tool call (skip analysis_log to avoid recursion).
+        let now = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_secs();
+        let summary = truncate_json_summary(&arguments, 200);
+        let graph_name = arguments
+            .get("graph")
+            .and_then(|v| v.as_str())
+            .map(String::from);
+        self.operation_log.push(OperationRecord {
+            tool_name: tool_name.to_string(),
+            summary,
+            timestamp: now,
+            graph_name,
+        });
+
+        result
     }
 
     /// Handle "resources/list".
@@ -686,6 +756,74 @@ impl McpServer {
                 }]
             }),
         )
+    }
+
+    /// Tool: analysis_log — record the intent/context behind a code analysis.
+    fn tool_analysis_log(&mut self, id: Value, args: &Value) -> JsonRpcResponse {
+        let intent = match args.get("intent").and_then(|v| v.as_str()) {
+            Some(i) if !i.trim().is_empty() => i,
+            _ => {
+                return JsonRpcResponse::error(
+                    id,
+                    JsonRpcError::invalid_params("'intent' is required and must not be empty"),
+                );
+            }
+        };
+
+        let finding = args.get("finding").and_then(|v| v.as_str());
+        let graph_name = args.get("graph").and_then(|v| v.as_str());
+        let topic = args.get("topic").and_then(|v| v.as_str());
+
+        let now = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_secs();
+
+        let mut summary_parts = vec![format!("intent: {intent}")];
+        if let Some(f) = finding {
+            summary_parts.push(format!("finding: {f}"));
+        }
+        if let Some(t) = topic {
+            summary_parts.push(format!("topic: {t}"));
+        }
+
+        let record = OperationRecord {
+            tool_name: "analysis_log".to_string(),
+            summary: summary_parts.join(" | "),
+            timestamp: now,
+            graph_name: graph_name.map(String::from),
+        };
+
+        let index = self.operation_log.len();
+        self.operation_log.push(record);
+
+        JsonRpcResponse::success(
+            id,
+            json!({
+                "content": [{
+                    "type": "text",
+                    "text": serde_json::to_string_pretty(&json!({
+                        "log_index": index,
+                        "message": "Analysis context logged"
+                    })).unwrap_or_default()
+                }]
+            }),
+        )
+    }
+
+    /// Access the operation log.
+    pub fn operation_log(&self) -> &[OperationRecord] {
+        &self.operation_log
+    }
+}
+
+/// Truncate a JSON value to a short summary string.
+fn truncate_json_summary(value: &Value, max_len: usize) -> String {
+    let s = value.to_string();
+    if s.len() <= max_len {
+        s
+    } else {
+        format!("{}...", &s[..max_len])
     }
 }
 
