@@ -420,7 +420,7 @@ fn test_tool_list_includes_analysis_log() {
 }
 
 #[test]
-fn test_tool_count_is_5() {
+fn test_tool_count_is_17() {
     let mut server = create_test_server();
 
     let resp = send_request(
@@ -431,8 +431,8 @@ fn test_tool_count_is_5() {
     let tools = resp["result"]["tools"].as_array().unwrap();
     assert_eq!(
         tools.len(),
-        5,
-        "Should have 5 tools (4 original + analysis_log)"
+        17,
+        "Should have 17 tools (5 original + 3 grounding + 6 workspace + 3 translation)"
     );
 }
 

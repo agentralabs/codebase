@@ -50,6 +50,23 @@ acb query project.acb prophecy --limit 10              # What will break next?
 
 Four languages. Twenty-four query types. One file holds everything. Sub-microsecond lookups. Works with Claude Desktop, VS Code, Cursor, Windsurf, and any MCP-compatible client.
 
+### V2: Grounding & Multi-Context Workspaces
+
+**Grounding (anti-hallucination)** -- agents cannot claim code exists without graph backing. Three new MCP tools (`codebase_ground`, `codebase_evidence`, `codebase_suggest`) verify symbol claims, return evidence with file paths and line numbers, and suggest similar symbols when a claim is ungrounded.
+
+**Multi-context workspaces** -- load multiple `.acb` files simultaneously and query across them. Six workspace tools (`workspace_create`, `workspace_add`, `workspace_list`, `workspace_query`, `workspace_compare`, `workspace_xref`) plus three translation tools (`translation_record`, `translation_progress`, `translation_remaining`) for cross-repo migration tracking.
+
+```bash
+# Grounding: verify a code claim before asserting it
+acb-mcp  # codebase_ground { "claim": "UserService has method getProfile" }
+
+# Workspace: compare symbols across two repos
+acb-mcp  # workspace_create { "name": "migration" }
+         # workspace_add { "workspace_id": "...", "path": "old.acb", "role": "primary" }
+         # workspace_add { "workspace_id": "...", "path": "new.acb", "role": "secondary" }
+         # workspace_compare { "workspace_id": "...", "item": "UserService" }
+```
+
 <p align="center">
   <img src="assets/github-terminal-pane.svg" alt="AgenticCodebase terminal pane" width="980">
 </p>
@@ -351,8 +368,9 @@ AgenticCodebase is part of the Agentic ecosystem:
 - **[AgenticMemory](https://github.com/agentralabs/agentic-memory)** -- Persistent, navigable memory for AI agents
 - **[AgenticVision](https://github.com/agentralabs/agentic-vision)** -- Visual memory and image understanding for AI agents
 - **AgenticCodebase** -- Semantic code understanding for AI agents
+- **[AgenticIdentity](https://github.com/agentralabs/agentic-identity)** -- Verifiable trust, receipts, and competence for AI agents
 
-All three share the MCP protocol for seamless AI agent integration. Run all three servers together for an agent with memory, vision, and code understanding.
+All four share the MCP protocol for seamless AI agent integration. Run all four servers together for an agent with memory, vision, code understanding, and verifiable identity.
 
 <p align="center">
   <img src="assets/cross-runtime.svg" alt="AgenticCodebase cross-runtime artifact flow from CLI and MCP to dependency, impact, and prophecy surfaces" width="760">
@@ -365,7 +383,7 @@ All three share the MCP protocol for seamless AI agent integration. Run all thre
 - **Language**: Rust
 - **Source files**: 58
 - **Lines of code**: 13,709
-- **Tests**: 432 (38 unit + 394 integration)
+- **Tests**: 567 (38 unit + 460 integration + 69 V2 stress)
 - **Benchmarks**: 21 Criterion benchmarks
 - **Clippy warnings**: 0
 - **Supported languages**: Python, Rust, TypeScript, Go

@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## v0.2.0 — V2: Grounding & Multi-Context Workspaces
+
+### Added
+- **Grounding (anti-hallucination)**: Verify code claims have graph backing before an agent asserts them.
+  - `codebase_ground`: Verify a claim about code against the graph. Returns verified/partial/ungrounded with evidence.
+  - `codebase_evidence`: Find graph evidence for a symbol name.
+  - `codebase_suggest`: Suggest similar symbols for typos/hallucinations (Levenshtein distance).
+- **Multi-context workspaces**: Load and query multiple codebases simultaneously.
+  - `workspace_create`: Create a multi-codebase workspace.
+  - `workspace_add`: Add a codebase with role (source/target/reference/comparison).
+  - `workspace_list`: List all loaded codebases.
+  - `workspace_query`: Search across all graphs.
+  - `workspace_compare`: Compare a symbol between source and target.
+  - `workspace_xref`: Cross-reference where a symbol exists/doesn't.
+- **Translation mapping**: Track code migration progress (source->target).
+  - `translation_record`: Record a source->target symbol mapping.
+  - `translation_progress`: Get migration progress statistics.
+  - `translation_remaining`: List symbols not yet ported.
+- 69 new V2 stress tests (grounding, workspace, translation, MCP integration).
+
+### Changed
+- MCP tool count increased from 5 to 17.
+
 ## [0.1.5] - 2026-02-23
 
 ### Fixed

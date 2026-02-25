@@ -15,6 +15,8 @@
 //! - **index** — Fast lookup indexes.
 //! - **temporal** — Change history, stability, coupling, prophecy.
 //! - **collective** — Collective intelligence and pattern sync.
+//! - **grounding** — Anti-hallucination verification of code claims.
+//! - **workspace** — Multi-context workspaces for cross-codebase queries.
 //! - **ffi** — C-compatible FFI bindings.
 //! - **config** — Configuration loading and path resolution.
 //! - **cli** — Command-line interface.
@@ -27,16 +29,19 @@ pub mod engine;
 pub mod ffi;
 pub mod format;
 pub mod graph;
+pub mod grounding;
 pub mod index;
 pub mod mcp;
 pub mod parse;
 pub mod semantic;
 pub mod temporal;
 pub mod types;
+pub mod workspace;
 
 // Re-export key types at crate root for convenience
 pub use format::{AcbReader, AcbWriter};
 pub use graph::{CodeGraph, GraphBuilder};
+pub use grounding::{Evidence, Grounded, GroundingEngine, GroundingResult};
 pub use types::{
     AcbError, AcbResult, CodeUnit, CodeUnitBuilder, CodeUnitType, Edge, EdgeType, FileHeader,
     Language, Span, Visibility,
