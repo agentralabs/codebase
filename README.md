@@ -59,10 +59,10 @@ Four languages. Twenty-four query types. One file holds everything. Sub-microsec
 
 ```bash
 # Grounding: verify a code claim before asserting it
-acb-mcp  # codebase_ground { "claim": "UserService has method getProfile" }
+agentic-codebase-mcp  # codebase_ground { "claim": "UserService has method getProfile" }
 
 # Workspace: compare symbols across two repos
-acb-mcp  # workspace_create { "name": "migration" }
+agentic-codebase-mcp  # workspace_create { "name": "migration" }
          # workspace_add { "workspace_id": "...", "path": "old.acb", "role": "primary" }
          # workspace_add { "workspace_id": "...", "path": "new.acb", "role": "secondary" }
          # workspace_compare { "workspace_id": "...", "item": "UserService" }
@@ -125,7 +125,7 @@ Rust core. Tree-sitter parsing. Binary `.acb` format. Real numbers from `cargo b
 ### Install
 
 ```bash
-cargo install agentic-codebase
+cargo install agentic-codebase-cli agentic-codebase-mcp
 ```
 
 ### Compile a codebase
@@ -301,7 +301,7 @@ Calls, CalledBy, Imports, ImportedBy, Contains, ContainedBy, Inherits, Inherited
 ## Install
 
 ```bash
-cargo install agentic-codebase
+cargo install agentic-codebase-cli agentic-codebase-mcp
 ```
 
 Install script (binary release + MCP config merge):
@@ -325,7 +325,7 @@ curl -fsSL https://agentralabs.tech/install/codebase/server | bash
 
 | Channel | Command | Result |
 |:---|:---|:---|
-| crates.io (official) | `cargo install agentic-codebase` | Installs both `acb` and `agentic-codebase-mcp` |
+| crates.io (official) | `cargo install agentic-codebase-cli agentic-codebase-mcp` | Installs `acb` and `agentic-codebase-mcp` |
 | GitHub installer (official) | `curl -fsSL https://agentralabs.tech/install/codebase \| bash` | Installs release binaries when available, otherwise source fallback; merges MCP config |
 | GitHub installer (desktop profile) | `curl -fsSL https://agentralabs.tech/install/codebase/desktop \| bash` | Explicit desktop profile behavior |
 | GitHub installer (terminal profile) | `curl -fsSL https://agentralabs.tech/install/codebase/terminal \| bash` | Installs binaries only; no desktop config writes |
