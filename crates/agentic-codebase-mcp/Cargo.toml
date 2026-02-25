@@ -1,0 +1,35 @@
+[package]
+name = "agentic-codebase-mcp"
+version = "0.2.1"
+edition = "2021"
+license = "MIT"
+repository = "https://github.com/agentralabs/agentic-codebase"
+homepage = "https://agentralabs.tech"
+authors = ["Agentra Labs <contact@agentralabs.tech>"]
+description = "MCP server package for AgenticCodebase"
+keywords = ["mcp", "ai", "agent", "code-analysis", "graph"]
+categories = ["development-tools"]
+
+[[bin]]
+name = "agentic-codebase-mcp"
+path = "src/main.rs"
+
+[dependencies]
+agentic-codebase = { path = "../..", version = "0.2.0", features = ["stdio"] }
+clap = { version = "4", features = ["derive"] }
+sha2 = "0.10"
+walkdir = "2"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+tracing = "0.1"
+
+# Optional SSE transport parity
+axum = { version = "0.7", optional = true }
+tower = { version = "0.4", optional = true }
+tower-http = { version = "0.5", features = ["cors"], optional = true }
+tokio = { version = "1", features = ["full"], optional = true }
+
+[features]
+default = ["stdio"]
+stdio = []
+sse = ["axum", "tower", "tower-http", "tokio"]
+all-transports = ["stdio", "sse"]

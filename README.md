@@ -7,6 +7,7 @@
   <a href="#mcp-server"><img src="https://img.shields.io/badge/MCP_Server-acb--mcp-10B981?style=for-the-badge&logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IndoaXRlIiBzdHJva2Utd2lkdGg9IjIiPjxwYXRoIGQ9Ik0xMiAydjIwTTIgMTJoMjAiLz48L3N2Zz4=&logoColor=white" alt="MCP Server"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-22C55E?style=for-the-badge" alt="MIT License"></a>
   <a href="paper/paper-i-semantic-compiler/agenticcodebase-paper.pdf"><img src="https://img.shields.io/badge/Research-Paper_I-8B5CF6?style=for-the-badge" alt="Research Paper I"></a>
+  <a href="docs/api-reference.md"><img src="https://img.shields.io/badge/format-.acb-3B82F6?style=for-the-badge" alt=".acb format"></a>
 </p>
 
 <p align="center">
@@ -387,6 +388,18 @@ All four share the MCP protocol for seamless AI agent integration. Run all four 
 - **Benchmarks**: 21 Criterion benchmarks
 - **Clippy warnings**: 0
 - **Supported languages**: Python, Rust, TypeScript, Go
+
+## The .acb File
+
+Your agent's code knowledge. Semantic understanding.
+
+| | |
+|-|-|
+| Size | ~2-3 GB over 20 years |
+| Format | Binary semantic graph |
+| Works with | Any coding model |
+
+---
 
 ## Contributing
 

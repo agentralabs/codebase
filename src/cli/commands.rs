@@ -9,6 +9,7 @@ use std::time::{Instant, SystemTime};
 
 use clap::{CommandFactory, Parser, Subcommand, ValueEnum};
 use clap_complete::Shell;
+use serde::{Deserialize, Serialize};
 
 use crate::cli::output::{format_size, progress, progress_done, Styled};
 use crate::engine::query::{
@@ -18,14 +19,28 @@ use crate::engine::query::{
 };
 use crate::format::{AcbReader, AcbWriter};
 use crate::graph::CodeGraph;
+use crate::grounding::{Grounded, GroundingEngine, GroundingResult};
 use crate::parse::parser::{ParseOptions, Parser as AcbParser};
 use crate::semantic::analyzer::{AnalyzeOptions, SemanticAnalyzer};
 use crate::types::FileHeader;
+use crate::workspace::{ContextRole, WorkspaceManager};
 
 /// Default long-horizon storage budget target (2 GiB over 20 years).
 const DEFAULT_STORAGE_BUDGET_BYTES: u64 = 2 * 1024 * 1024 * 1024;
 /// Default storage budget projection horizon.
 const DEFAULT_STORAGE_BUDGET_HORIZON_YEARS: u32 = 20;
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct WorkspaceContextState {
+    path: String,
+    role: String,
+    language: Option<String>,
+}
+
+#[derive(Debug, Default, Serialize, Deserialize)]
+struct WorkspaceState {
+    workspaces: std::collections::HashMap<String, Vec<WorkspaceContextState>>,
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum StorageBudgetMode {
@@ -103,6 +118,12 @@ pub enum OutputFormat {
 /// Top-level subcommands.
 #[derive(Subcommand)]
 pub enum Command {
+    /// Create a new empty .acb graph file.
+    Init {
+        /// Path to the .acb file to create.
+        file: PathBuf,
+    },
+
     /// Compile a repository into an .acb graph file.
     ///
     /// Recursively scans the source directory, parses all supported languages
@@ -271,6 +292,89 @@ pub enum Command {
         #[arg(long, default_value_t = DEFAULT_STORAGE_BUDGET_HORIZON_YEARS)]
         horizon_years: u32,
     },
+
+    /// Export an .acb file into JSON.
+    Export {
+        /// Path to the .acb file.
+        file: PathBuf,
+
+        /// Optional output path. Defaults to stdout.
+        #[arg(short, long)]
+        output: Option<PathBuf>,
+    },
+
+    /// Verify a natural-language claim against code graph evidence.
+    Ground {
+        /// Path to the .acb file.
+        file: PathBuf,
+        /// Claim text to verify.
+        claim: String,
+    },
+
+    /// Return evidence nodes for a symbol-like query.
+    Evidence {
+        /// Path to the .acb file.
+        file: PathBuf,
+        /// Symbol or name fragment.
+        query: String,
+        /// Maximum results.
+        #[arg(long, short = 'l', default_value_t = 20)]
+        limit: usize,
+    },
+
+    /// Suggest likely symbol corrections.
+    Suggest {
+        /// Path to the .acb file.
+        file: PathBuf,
+        /// Query text or typo.
+        query: String,
+        /// Maximum suggestions.
+        #[arg(long, short = 'l', default_value_t = 10)]
+        limit: usize,
+    },
+
+    /// Workspace operations across multiple .acb files.
+    Workspace {
+        #[command(subcommand)]
+        command: WorkspaceCommand,
+    },
+}
+
+#[derive(Subcommand)]
+pub enum WorkspaceCommand {
+    /// Create a workspace.
+    Create { name: String },
+
+    /// Add an .acb context to a workspace.
+    Add {
+        workspace: String,
+        file: PathBuf,
+        #[arg(long, default_value = "source")]
+        role: String,
+        #[arg(long)]
+        language: Option<String>,
+    },
+
+    /// List contexts in a workspace.
+    List { workspace: String },
+
+    /// Query symbols across all workspace contexts.
+    Query {
+        workspace: String,
+        query: String,
+    },
+
+    /// Compare a symbol across contexts.
+    Compare {
+        workspace: String,
+        symbol: String,
+    },
+
+    /// Cross-reference a symbol across contexts.
+    Xref {
+        workspace: String,
+        symbol: String,
+    },
 }
 
 // ---------------------------------------------------------------------------
@@ -283,6 +387,7 @@ pub enum Command {
 pub fn run(cli: Cli) -> Result<(), Box<dyn std::error::Error>> {
     let command_name = match &cli.command {
         None => "repl",
+        Some(Command::Init { .. }) => "init",
         Some(Command::Compile { .. }) => "compile",
         Some(Command::Info { .. }) => "info",
         Some(Command::Query { .. }) => "query",
@@ -291,12 +396,18 @@ pub fn run(cli: Cli) -> Result<(), Box<dyn std::error::Error>> {
         Some(Command::Health { .. }) => "health",
         Some(Command::Gate { .. }) => "gate",
         Some(Command::Budget { .. }) => "budget",
+        Some(Command::Export { .. }) => "export",
+        Some(Command::Ground { .. }) => "ground",
+        Some(Command::Evidence { .. }) => "evidence",
+        Some(Command::Suggest { .. }) => "suggest",
+        Some(Command::Workspace { .. }) => "workspace",
     };
     let started = Instant::now();
     let result = match &cli.command {
         // No subcommand → launch interactive REPL
         None => crate::cli::repl::run(),
 
+        Some(Command::Init { file }) => cmd_init(file, &cli),
         Some(Command::Compile {
             path,
             output,
@@ -347,6 +458,11 @@ pub fn run(cli: Cli) -> Result<(), Box<dyn std::error::Error>> {
             max_bytes,
             horizon_years,
         }) => cmd_budget(file, *max_bytes, *horizon_years, &cli),
+        Some(Command::Export { file, output }) => cmd_export_graph(file, output.as_deref(), &cli),
+        Some(Command::Ground { file, claim }) => cmd_ground(file, claim, &cli),
+        Some(Command::Evidence { file, query, limit }) => cmd_evidence(file, query, *limit, &cli),
+        Some(Command::Suggest { file, query, limit }) => cmd_suggest(file, query, *limit, &cli),
+        Some(Command::Workspace { command }) => cmd_workspace(command, &cli),
     };
 
     emit_cli_health_ledger(command_name, started.elapsed(), result.is_ok());
@@ -442,6 +558,441 @@ fn validate_acb_path(path: &Path) -> Result<(), Box<dyn std::error::Error>> {
         .into());
     }
     Ok(())
+}
+
+fn workspace_state_path() -> PathBuf {
+    let home = std::env::var("HOME")
+        .ok()
+        .map(PathBuf::from)
+        .unwrap_or_else(|| PathBuf::from("."));
+    home.join(".agentic").join("codebase").join("workspaces.json")
+}
+
+fn load_workspace_state() -> Result<WorkspaceState, Box<dyn std::error::Error>> {
+    let path = workspace_state_path();
+    if !path.exists() {
+        return Ok(WorkspaceState::default());
+    }
+    let raw = std::fs::read_to_string(path)?;
+    let state = serde_json::from_str::<WorkspaceState>(&raw)?;
+    Ok(state)
+}
+
+fn save_workspace_state(state: &WorkspaceState) -> Result<(), Box<dyn std::error::Error>> {
+    let path = workspace_state_path();
+    if let Some(dir) = path.parent() {
+        std::fs::create_dir_all(dir)?;
+    }
+    let raw = serde_json::to_string_pretty(state)?;
+    std::fs::write(path, raw)?;
+    Ok(())
+}
+
+fn build_workspace_manager(
+    workspace: &str,
+) -> Result<(WorkspaceManager, String, WorkspaceState), Box<dyn std::error::Error>> {
+    let state = load_workspace_state()?;
+    let contexts = state
+        .workspaces
+        .get(workspace)
+        .ok_or_else(|| format!("workspace '{}' not found", workspace))?;
+
+    let mut manager = WorkspaceManager::new();
+    let ws_id = manager.create(workspace);
+
+    for ctx in contexts {
+        let role = ContextRole::from_str(&ctx.role).unwrap_or(ContextRole::Source);
+        let graph = AcbReader::read_from_file(Path::new(&ctx.path))?;
+        manager.add_context(&ws_id, &ctx.path, role, ctx.language.clone(), graph)?;
+    }
+
+    Ok((manager, ws_id, state))
+}
+
+fn cmd_init(file: &PathBuf, cli: &Cli) -> Result<(), Box<dyn std::error::Error>> {
+    if file.extension().and_then(|e| e.to_str()) != Some("acb") {
+        return Err("init target must use .acb extension".into());
+    }
+    let graph = CodeGraph::with_default_dimension();
+    let writer = AcbWriter::new(graph.dimension());
+    writer.write_to_file(&graph, file)?;
+
+    if matches!(cli.format, OutputFormat::Json) {
+        println!(
+            "{}",
+            serde_json::to_string_pretty(&serde_json::json!({
+                "file": file.display().to_string(),
+                "created": true,
+                "units": 0,
+                "edges": 0
+            }))?
+        );
+    } else if !cli.quiet {
+        println!("Initialized {}", file.display());
+    }
+    Ok(())
+}
+
+fn cmd_export_graph(
+    file: &PathBuf,
+    output: Option<&Path>,
+    cli: &Cli,
+) -> Result<(), Box<dyn std::error::Error>> {
+    validate_acb_path(file)?;
+    let graph = AcbReader::read_from_file(file)?;
+    let payload = serde_json::json!({
+        "file": file.display().to_string(),
+        "units": graph.units().iter().map(|u| serde_json::json!({
+            "id": u.id,
+            "name": u.name,
+            "qualified_name": u.qualified_name,
+            "type": u.unit_type.label(),
+            "language": u.language.name(),
+            "file_path": u.file_path.display().to_string(),
+            "signature": u.signature,
+        })).collect::<Vec<_>>(),
+        "edges": graph.edges().iter().map(|e| serde_json::json!({
+            "source_id": e.source_id,
+            "target_id": e.target_id,
+            "type": e.edge_type.label(),
+            "weight": e.weight,
+        })).collect::<Vec<_>>(),
+    });
+
+    let raw = serde_json::to_string_pretty(&payload)?;
+    if let Some(path) = output {
+        std::fs::write(path, raw)?;
+        if !cli.quiet && matches!(cli.format, OutputFormat::Text) {
+            println!("Exported {} -> {}", file.display(), path.display());
+        }
+    } else {
+        println!("{}", raw);
+    }
+    Ok(())
+}
+
+fn cmd_ground(file: &PathBuf, claim: &str, cli: &Cli) -> Result<(), Box<dyn std::error::Error>> {
+    validate_acb_path(file)?;
+    let graph = AcbReader::read_from_file(file)?;
+    let engine = GroundingEngine::new(&graph);
+    match engine.ground_claim(claim) {
+        GroundingResult::Verified {
+            evidence,
+            confidence,
+        } => {
+            if matches!(cli.format, OutputFormat::Json) {
+                println!(
+                    "{}",
+                    serde_json::to_string_pretty(&serde_json::json!({
+                        "status": "verified",
+                        "claim": claim,
+                        "confidence": confidence,
+                        "evidence_count": evidence.len(),
+                        "evidence": evidence.iter().map(|e| serde_json::json!({
+                            "node_id": e.node_id,
+                            "name": e.name,
+                            "type": e.node_type,
+                            "file": e.file_path,
+                            "line": e.line_number,
+                            "snippet": e.snippet,
+                        })).collect::<Vec<_>>()
+                    }))?
+                );
+            } else {
+                println!("Status: verified (confidence {:.2})", confidence);
+                println!("Evidence: {}", evidence.len());
+            }
+        }
+        GroundingResult::Partial {
+            supported,
+            unsupported,
+            suggestions,
+        } => {
+            if matches!(cli.format, OutputFormat::Json) {
+                println!(
+                    "{}",
+                    serde_json::to_string_pretty(&serde_json::json!({
+                        "status": "partial",
+                        "claim": claim,
+                        "supported": supported,
+                        "unsupported": unsupported,
+                        "suggestions": suggestions
+                    }))?
+                );
+            } else {
+                println!("Status: partial");
+                println!("Supported: {:?}", supported);
+                println!("Unsupported: {:?}", unsupported);
+                if !suggestions.is_empty() {
+                    println!("Suggestions: {:?}", suggestions);
+                }
+            }
+        }
+        GroundingResult::Ungrounded { suggestions, .. } => {
+            if matches!(cli.format, OutputFormat::Json) {
+                println!(
+                    "{}",
+                    serde_json::to_string_pretty(&serde_json::json!({
+                        "status": "ungrounded",
+                        "claim": claim,
+                        "suggestions": suggestions
+                    }))?
+                );
+            } else {
+                println!("Status: ungrounded");
+                if suggestions.is_empty() {
+                    println!("Suggestions: none");
+                } else {
+                    println!("Suggestions: {:?}", suggestions);
+                }
+            }
+        }
+    }
+    Ok(())
+}
+
+fn cmd_evidence(
+    file: &PathBuf,
+    query: &str,
+    limit: usize,
+    cli: &Cli,
+) -> Result<(), Box<dyn std::error::Error>> {
+    validate_acb_path(file)?;
+    let graph = AcbReader::read_from_file(file)?;
+    let engine = GroundingEngine::new(&graph);
+    let mut evidence = engine.find_evidence(query);
+    evidence.truncate(limit);
+
+    if matches!(cli.format, OutputFormat::Json) {
+        println!(
+            "{}",
+            serde_json::to_string_pretty(&serde_json::json!({
+                "query": query,
+                "count": evidence.len(),
+                "evidence": evidence.iter().map(|e| serde_json::json!({
+                    "node_id": e.node_id,
+                    "name": e.name,
+                    "type": e.node_type,
+                    "file": e.file_path,
+                    "line": e.line_number,
+                    "snippet": e.snippet,
+                })).collect::<Vec<_>>()
+            }))?
+        );
+    } else if evidence.is_empty() {
+        println!("No evidence found.");
+    } else {
+        println!("Evidence for {:?}:", query);
+        for e in &evidence {
+            println!(
+                "  - [{}] {} ({}) {}",
+                e.node_id, e.name, e.node_type, e.file_path
+            );
+        }
+    }
+    Ok(())
+}
+
+fn cmd_suggest(
+    file: &PathBuf,
+    query: &str,
+    limit: usize,
+    cli: &Cli,
+) -> Result<(), Box<dyn std::error::Error>> {
+    validate_acb_path(file)?;
+    let graph = AcbReader::read_from_file(file)?;
+    let engine = GroundingEngine::new(&graph);
+    let suggestions = engine.suggest_similar(query, limit);
+
+    if matches!(cli.format, OutputFormat::Json) {
+        println!(
+            "{}",
+            serde_json::to_string_pretty(&serde_json::json!({
+                "query": query,
+                "suggestions": suggestions
+            }))?
+        );
+    } else if suggestions.is_empty() {
+        println!("No suggestions found.");
+    } else {
+        println!("Suggestions:");
+        for s in suggestions {
+            println!("  - {}", s);
+        }
+    }
+    Ok(())
+}
+
+fn cmd_workspace(
+    command: &WorkspaceCommand,
+    cli: &Cli,
+) -> Result<(), Box<dyn std::error::Error>> {
+    match command {
+        WorkspaceCommand::Create { name } => {
+            let mut state = load_workspace_state()?;
+            state.workspaces.entry(name.clone()).or_default();
+            save_workspace_state(&state)?;
+            if matches!(cli.format, OutputFormat::Json) {
+                println!(
+                    "{}",
+                    serde_json::to_string_pretty(&serde_json::json!({
+                        "workspace": name,
+                        "created": true
+                    }))?
+                );
+            } else if !cli.quiet {
+                println!("Created workspace '{}'", name);
+            }
+            Ok(())
+        }
+        WorkspaceCommand::Add {
+            workspace,
+            file,
+            role,
+            language,
+        } => {
+            validate_acb_path(file)?;
+            let mut state = load_workspace_state()?;
+            let contexts = state.workspaces.entry(workspace.clone()).or_default();
+            let path = file.display().to_string();
+            if !contexts.iter().any(|ctx| ctx.path == path) {
+                contexts.push(WorkspaceContextState {
+                    path: path.clone(),
+                    role: role.to_ascii_lowercase(),
+                    language: language.clone(),
+                });
+                save_workspace_state(&state)?;
+            }
+
+            if matches!(cli.format, OutputFormat::Json) {
+                println!(
+                    "{}",
+                    serde_json::to_string_pretty(&serde_json::json!({
+                        "workspace": workspace,
+                        "path": path,
+                        "added": true
+                    }))?
+                );
+            } else if !cli.quiet {
+                println!("Added {} to workspace '{}'", file.display(), workspace);
+            }
+            Ok(())
+        }
+        WorkspaceCommand::List { workspace } => {
+            let state = load_workspace_state()?;
+            let contexts = state
+                .workspaces
+                .get(workspace)
+                .ok_or_else(|| format!("workspace '{}' not found", workspace))?;
+            if matches!(cli.format, OutputFormat::Json) {
+                println!(
+                    "{}",
+                    serde_json::to_string_pretty(&serde_json::json!({
+                        "workspace": workspace,
+                        "contexts": contexts
+                    }))?
+                );
+            } else {
+                println!("Workspace '{}':", workspace);
+                for ctx in contexts {
+                    println!(
+                        "  - {} (role={}, language={})",
+                        ctx.path,
+                        ctx.role,
+                        ctx.language.clone().unwrap_or_else(|| "-".to_string())
+                    );
+                }
+            }
+            Ok(())
+        }
+        WorkspaceCommand::Query { workspace, query } => {
+            let (manager, ws_id, _) = build_workspace_manager(workspace)?;
+            let results = manager.query_all(&ws_id, query)?;
+            if matches!(cli.format, OutputFormat::Json) {
+                println!(
+                    "{}",
+                    serde_json::to_string_pretty(&serde_json::json!({
+                        "workspace": workspace,
+                        "query": query,
+                        "results": results.iter().map(|r| serde_json::json!({
+                            "context_id": r.context_id,
+                            "role": r.context_role.label(),
+                            "matches": r.matches.iter().map(|m| serde_json::json!({
+                                "unit_id": m.unit_id,
+                                "name": m.name,
+                                "qualified_name": m.qualified_name,
+                                "unit_type": m.unit_type,
+                                "file_path": m.file_path,
+                            })).collect::<Vec<_>>()
+                        })).collect::<Vec<_>>()
+                    }))?
+                );
+            } else {
+                println!("Workspace query {:?}:", query);
+                for r in results {
+                    println!("  Context {} ({})", r.context_id, r.context_role.label());
+                    for m in r.matches {
+                        println!("    - [{}] {}", m.unit_id, m.qualified_name);
+                    }
+                }
+            }
+            Ok(())
+        }
+        WorkspaceCommand::Compare { workspace, symbol } => {
+            let (manager, ws_id, _) = build_workspace_manager(workspace)?;
+            let comparison = manager.compare(&ws_id, symbol)?;
+            if matches!(cli.format, OutputFormat::Json) {
+                println!(
+                    "{}",
+                    serde_json::to_string_pretty(&serde_json::json!({
+                        "workspace": workspace,
+                        "symbol": comparison.symbol,
+                        "contexts": comparison.contexts.iter().map(|c| serde_json::json!({
+                            "context_id": c.context_id,
+                            "role": c.role.label(),
+                            "found": c.found,
+                            "unit_type": c.unit_type,
+                            "signature": c.signature,
+                            "file_path": c.file_path,
+                        })).collect::<Vec<_>>(),
+                        "semantic_match": comparison.semantic_match,
+                        "structural_diff": comparison.structural_diff,
+                    }))?
+                );
+            } else {
+                println!("Comparison for {:?}:", symbol);
+                for c in comparison.contexts {
+                    println!("  - {} ({}) found={}", c.context_id, c.role.label(), c.found);
+                }
+            }
+            Ok(())
+        }
+        WorkspaceCommand::Xref { workspace, symbol } => {
+            let (manager, ws_id, _) = build_workspace_manager(workspace)?;
+            let xref = manager.cross_reference(&ws_id, symbol)?;
+            if matches!(cli.format, OutputFormat::Json) {
+                println!(
+                    "{}",
+                    serde_json::to_string_pretty(&serde_json::json!({
+                        "workspace": workspace,
+                        "symbol": xref.symbol,
+                        "found_in": xref.found_in.iter().map(|(id, role)| serde_json::json!({
+                            "context_id": id,
+                            "role": role.label(),
+                        })).collect::<Vec<_>>(),
+                        "missing_from": xref.missing_from.iter().map(|(id, role)| serde_json::json!({
+                            "context_id": id,
+                            "role": role.label(),
+                        })).collect::<Vec<_>>(),
+                    }))?
+                );
+            } else {
+                println!("Found in: {:?}", xref.found_in);
+                println!("Missing from: {:?}", xref.missing_from);
+            }
+            Ok(())
+        }
+    }
 }
 
 // ---------------------------------------------------------------------------
