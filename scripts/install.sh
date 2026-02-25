@@ -12,7 +12,7 @@
 #   --dry-run          Print actions without executing
 #
 # What it does:
-#   1. Downloads acb-mcp binary to ~/.local/bin/
+#   1. Downloads agentic-codebase-mcp binary to ~/.local/bin/
 #   2. MERGES (not overwrites) MCP config into detected MCP client configs
 #   3. Leaves all existing MCP servers untouched
 #
@@ -22,7 +22,7 @@ set -euo pipefail
 
 # ── Constants ──────────────────────────────────────────────────────────
 REPO="agentralabs/codebase"
-BINARY_NAME="acb-mcp"
+BINARY_NAME="agentic-codebase-mcp"
 SERVER_KEY="agentic-codebase"
 INSTALL_DIR="$HOME/.local/bin"
 INSTALL_DIR_EXPLICIT=false
@@ -229,7 +229,7 @@ download_binary() {
         return 1
     fi
 
-    # Copy both binaries (acb CLI + acb-mcp server)
+    # Copy both binaries (acb CLI + agentic-codebase-mcp server)
     cp "${tmpdir}"/agentic-codebase-*/acb "${INSTALL_DIR}/acb" 2>/dev/null || true
     cp "${tmpdir}"/agentic-codebase-*/${BINARY_NAME} "${INSTALL_DIR}/${BINARY_NAME}"
     chmod +x "${INSTALL_DIR}/acb" 2>/dev/null || true
@@ -898,16 +898,16 @@ print_profile_help() {
     echo "Install profile: ${PROFILE}"
     case "$PROFILE" in
         desktop)
-            echo "  - Binaries installed (acb + acb-mcp)"
+            echo "  - Binaries installed (acb + agentic-codebase-mcp)"
             echo "  - Detected MCP client configs merged (Claude/Codex/Cursor/Windsurf/VS Code/etc.)"
             ;;
         terminal)
-            echo "  - Binaries installed (acb + acb-mcp)"
+            echo "  - Binaries installed (acb + agentic-codebase-mcp)"
             echo "  - Detected MCP client configs merged (same as desktop profile)"
             echo "  - Native terminal usage remains available"
             ;;
         server)
-            echo "  - Binaries installed (acb + acb-mcp)"
+            echo "  - Binaries installed (acb + agentic-codebase-mcp)"
             echo "  - No desktop config files were changed"
             echo "  - Suitable for remote/server hosts"
             echo "  - Server deployments should enforce auth (token/reverse-proxy/TLS)"

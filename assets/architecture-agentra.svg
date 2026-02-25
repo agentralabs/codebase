@@ -36,7 +36,7 @@
   <text x="420" y="139" text-anchor="middle" class="mono ink" font-size="16" font-weight="700">acb CLI</text>
 
   <rect x="550" y="106" width="220" height="54" rx="10" class="card"/>
-  <text x="660" y="139" text-anchor="middle" class="mono ink" font-size="16" font-weight="700">acb-mcp</text>
+  <text x="660" y="139" text-anchor="middle" class="mono ink" font-size="16" font-weight="700">agentic-codebase-mcp</text>
 
   <rect x="790" y="106" width="340" height="54" rx="10" class="card"/>
   <text x="960" y="139" text-anchor="middle" class="mono ink" font-size="16" font-weight="700">Rust API / Automation Runtimes</text>

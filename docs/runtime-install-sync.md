@@ -5,14 +5,14 @@ This page documents runtime behavior that should remain consistent across instal
 ## Installer Behavior by Profile
 
 - `desktop`
-  - Installs `acb` and `acb-mcp`
+  - Installs `acb` and `agentic-codebase-mcp`
   - Merges MCP configs for detected clients
 - `terminal`
-  - Installs `acb` and `acb-mcp`
+  - Installs `acb` and `agentic-codebase-mcp`
   - Also merges MCP configs
   - Native terminal workflow remains available
 - `server`
-  - Installs `acb` and `acb-mcp`
+  - Installs `acb` and `agentic-codebase-mcp`
   - Skips desktop config writes
   - Intended for remote/server hosts
 
@@ -39,7 +39,7 @@ Any MCP client can consume the same MCP entry:
 {
   "mcpServers": {
     "agentic-codebase": {
-      "command": "$HOME/.local/bin/acb-mcp",
+      "command": "$HOME/.local/bin/agentic-codebase-mcp",
       "args": []
     }
   }

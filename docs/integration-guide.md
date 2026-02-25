@@ -4,7 +4,7 @@ This guide covers how to integrate AgenticCodebase into various environments: MC
 
 ## MCP Server Integration
 
-The MCP server (`acb-mcp`) exposes AgenticCodebase to any LLM client that supports the [Model Context Protocol](https://modelcontextprotocol.io/).
+The MCP server (`agentic-codebase-mcp`) exposes AgenticCodebase to any LLM client that supports the [Model Context Protocol](https://modelcontextprotocol.io/).
 
 ### Claude Desktop
 
@@ -14,7 +14,7 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
 {
   "mcpServers": {
     "agentic-codebase": {
-      "command": "acb-mcp",
+      "command": "agentic-codebase-mcp",
       "args": []
     }
   }
@@ -31,7 +31,7 @@ Add to `.vscode/settings.json`:
 {
   "mcp.servers": {
     "agentic-codebase": {
-      "command": "acb-mcp",
+      "command": "agentic-codebase-mcp",
       "args": []
     }
   }
@@ -46,7 +46,7 @@ Add to `~/.codeium/windsurf/mcp_config.json`:
 {
   "mcpServers": {
     "agentic-codebase": {
-      "command": "acb-mcp",
+      "command": "agentic-codebase-mcp",
       "args": []
     }
   }
@@ -236,7 +236,7 @@ AgenticCodebase works alongside [AgenticMemory](https://github.com/agentralabs/a
       "args": ["serve"]
     },
     "codebase": {
-      "command": "acb-mcp",
+      "command": "agentic-codebase-mcp",
       "args": []
     }
   }

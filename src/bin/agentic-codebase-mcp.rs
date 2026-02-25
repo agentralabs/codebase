@@ -17,7 +17,7 @@ use walkdir::WalkDir;
 
 #[derive(Parser)]
 #[command(
-    name = "acb-mcp",
+    name = "agentic-codebase-mcp",
     about = "AgenticCodebase MCP server -- semantic code intelligence for AI agents",
     version
 )]

@@ -26,8 +26,8 @@ path = "src/bin/acb.rs"
 
 # MCP server binary
 [[bin]]
-name = "acb-mcp"
-path = "src/bin/acb-mcp.rs"
+name = "agentic-codebase-mcp"
+path = "src/bin/agentic-codebase-mcp.rs"
 
 [dependencies]
 # Parsing - tree-sitter ecosystem

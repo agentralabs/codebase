@@ -8,9 +8,9 @@ This page defines expected runtime behavior across installer output, CLI behavio
 
 ## Installer profiles
 
-- `desktop`: installs `acb` and `acb-mcp`, then merges detected desktop MCP config.
-- `terminal`: installs `acb` and `acb-mcp` without desktop-specific UX assumptions.
-- `server`: installs `acb` and `acb-mcp` without desktop config writes.
+- `desktop`: installs `acb` and `agentic-codebase-mcp`, then merges detected desktop MCP config.
+- `terminal`: installs `acb` and `agentic-codebase-mcp` without desktop-specific UX assumptions.
+- `server`: installs `acb` and `agentic-codebase-mcp` without desktop config writes.
 
 ## Completion output contract
 
@@ -33,7 +33,7 @@ Install complete: AgenticCodebase (<profile>)
 {
   "mcpServers": {
     "agentic-codebase": {
-      "command": "$HOME/.local/bin/acb-mcp",
+      "command": "$HOME/.local/bin/agentic-codebase-mcp",
       "args": []
     }
   }
@@ -42,7 +42,7 @@ Install complete: AgenticCodebase (<profile>)
 
 ## Workspace auto-indexing behavior
 
-- Installer writes `acb-mcp-agentra` launcher as MCP entrypoint.
+- Installer writes `agentic-codebase-mcp-agentra` launcher as MCP entrypoint.
 - On every start, launcher resolves active workspace and graph in this order:
 1. Explicit override: `AGENTRA_ACB_PATH` / `AGENTRA_GRAPH_PATH`.
 2. Active workspace root (`AGENTRA_WORKSPACE_ROOT` / `AGENTRA_PROJECT_ROOT` / current project dir).

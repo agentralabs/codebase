@@ -36,7 +36,7 @@ RAG over source files doesn't work. You get "similar text," never *"what breaks 
 - **Problem:** cross-project work becomes brittle and manual.  
   **Solved:** compile each repo into its own graph artifact and query them independently.
 - **Problem:** MCP coding clients see raw files but not deep code semantics.  
-  **Solved:** `acb-mcp` exposes the graph to MCP clients for structured code intelligence.
+  **Solved:** `agentic-codebase-mcp` exposes the graph to MCP clients for structured code intelligence.
 
 ```bash
 # Compile any repository (Python, Rust, TypeScript, Go)
@@ -141,10 +141,10 @@ acb gate project.acb --unit-id 42 --max-risk 0.60 --require-tests
 
 ```bash
 # Start the MCP server (stdio transport)
-acb-mcp
+agentic-codebase-mcp
 ```
 
-`acb-mcp` accepts both line-delimited JSON-RPC and `Content-Length` framed MCP stdio messages.
+`agentic-codebase-mcp` accepts both line-delimited JSON-RPC and `Content-Length` framed MCP stdio messages.
 
 Configure in Claude Desktop (`claude_desktop_config.json`):
 
@@ -152,7 +152,7 @@ Configure in Claude Desktop (`claude_desktop_config.json`):
 {
   "mcpServers": {
     "agentic-codebase": {
-      "command": "acb-mcp",
+      "command": "agentic-codebase-mcp",
       "args": ["serve"]
     }
   }
@@ -305,7 +305,7 @@ curl -fsSL https://agentralabs.tech/install/codebase/server | bash
 
 | Channel | Command | Result |
 |:---|:---|:---|
-| crates.io (official) | `cargo install agentic-codebase` | Installs both `acb` and `acb-mcp` |
+| crates.io (official) | `cargo install agentic-codebase` | Installs both `acb` and `agentic-codebase-mcp` |
 | GitHub installer (official) | `curl -fsSL https://agentralabs.tech/install/codebase \| bash` | Installs release binaries when available, otherwise source fallback; merges MCP config |
 | GitHub installer (desktop profile) | `curl -fsSL https://agentralabs.tech/install/codebase/desktop \| bash` | Explicit desktop profile behavior |
 | GitHub installer (terminal profile) | `curl -fsSL https://agentralabs.tech/install/codebase/terminal \| bash` | Installs binaries only; no desktop config writes |

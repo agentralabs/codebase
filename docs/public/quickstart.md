@@ -41,7 +41,7 @@ acb budget project.acb --horizon-years 20 --max-bytes 2147483648
 ## 5. Start MCP server
 
 ```bash
-acb-mcp serve
+agentic-codebase-mcp serve
 ```
 
 Use `Ctrl+C` to stop after startup verification.

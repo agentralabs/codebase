@@ -9,7 +9,7 @@ Install commands are documented in [Installation](installation.md).
 ## Binaries
 
 - `acb` (CLI compiler and query engine)
-- `acb-mcp` (MCP server)
+- `agentic-codebase-mcp` (MCP server)
 
 ## `acb` top-level
 
@@ -93,10 +93,10 @@ export ACB_STORAGE_BUDGET_HORIZON_YEARS=20
 export ACB_STORAGE_BUDGET_TARGET_FRACTION=0.85
 ```
 
-## `acb-mcp`
+## `agentic-codebase-mcp`
 
 ```bash
-acb-mcp serve
+agentic-codebase-mcp serve
 ```
 
 Common options:
@@ -111,7 +111,7 @@ Common options:
 {
   "mcpServers": {
     "agentic-codebase": {
-      "command": "$HOME/.local/bin/acb-mcp",
+      "command": "$HOME/.local/bin/agentic-codebase-mcp",
       "args": []
     }
   }

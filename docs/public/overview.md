@@ -10,7 +10,7 @@ AgenticCodebase compiles source code into a portable `.acb` graph for fast struc
 
 - Compile Python, Rust, TypeScript, and Go repositories.
 - Query symbols, dependencies, impact, calls, similarity, stability, and coupling.
-- Expose the graph through MCP with `acb-mcp`.
+- Expose the graph through MCP with `agentic-codebase-mcp`.
 
 ## Why teams adopt AgenticCodebase
 

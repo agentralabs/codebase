@@ -10,7 +10,7 @@ Get AgenticCodebase running in under 5 minutes. This guide covers installation, 
 curl -fsSL https://agentralabs.tech/install/codebase | bash
 ```
 
-Installs `acb` and `acb-mcp` release binaries and merges MCP config for desktop clients.
+Installs `acb` and `agentic-codebase-mcp` release binaries and merges MCP config for desktop clients.
 
 ### Environment-specific installers
 
@@ -39,7 +39,7 @@ Cloud/server runtime cannot read laptop files directly. Sync `.acb/.amem/.avis` 
 cargo install agentic-codebase
 ```
 
-Requires Rust 1.70 or later (tested with 1.90.0). This installs both the `acb` CLI and the `acb-mcp` MCP server binary.
+Requires Rust 1.70 or later (tested with 1.90.0). This installs both the `acb` CLI and the `agentic-codebase-mcp` MCP server binary.
 
 ### From source
 
@@ -49,7 +49,7 @@ cd agentic-codebase
 cargo build --release
 ```
 
-Binaries are at `target/release/acb` and `target/release/acb-mcp`.
+Binaries are at `target/release/acb` and `target/release/agentic-codebase-mcp`.
 
 ## Compile Your First Repository
 
@@ -187,7 +187,7 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
 {
   "mcpServers": {
     "agentic-codebase": {
-      "command": "acb-mcp",
+      "command": "agentic-codebase-mcp",
       "args": []
     }
   }

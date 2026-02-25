@@ -51,7 +51,7 @@ jobs:
       - name: Strip binary
         run: |
           strip target/${{ matrix.target }}/release/acb || true
-          strip target/${{ matrix.target }}/release/acb-mcp || true
+          strip target/${{ matrix.target }}/release/agentic-codebase-mcp || true
 
       - name: Package
         run: |
@@ -59,7 +59,7 @@ jobs:
           ASSET="agentic-codebase-${VERSION}-${{ matrix.triple }}"
           mkdir -p "${ASSET}"
           cp target/${{ matrix.target }}/release/acb "${ASSET}/"
-          cp target/${{ matrix.target }}/release/acb-mcp "${ASSET}/"
+          cp target/${{ matrix.target }}/release/agentic-codebase-mcp "${ASSET}/"
           tar czf "${ASSET}.tar.gz" "${ASSET}"
 
       - name: Upload artifact
@@ -131,7 +131,7 @@ jobs:
           prerelease: ${{ contains(github.ref_name, 'rc') || contains(github.ref_name, 'beta') }}
 
   publish-crate:
-    name: Publish to crates.io (acb + acb-mcp)
+    name: Publish to crates.io (acb + agentic-codebase-mcp)
     needs: release
     runs-on: ubuntu-latest
     steps:

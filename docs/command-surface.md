@@ -20,7 +20,7 @@ cargo install agentic-codebase
 ## Binaries
 
 - `acb` (CLI compiler + query engine)
-- `acb-mcp` (MCP server)
+- `agentic-codebase-mcp` (MCP server)
 
 ## `acb` Top-Level Commands
 
@@ -54,10 +54,10 @@ Core flags:
 - `--limit` result bound
 - `--format text|json`
 
-## `acb-mcp` Commands
+## `agentic-codebase-mcp` Commands
 
 ```bash
-acb-mcp serve
+agentic-codebase-mcp serve
 ```
 
 Common options:
@@ -72,7 +72,7 @@ Common options:
 {
   "mcpServers": {
     "agentic-codebase": {
-      "command": "$HOME/.local/bin/acb-mcp",
+      "command": "$HOME/.local/bin/agentic-codebase-mcp",
       "args": []
     }
   }
@@ -85,7 +85,7 @@ Common options:
 # CLI checks
 acb --version
 acb --help
-acb-mcp --version
+agentic-codebase-mcp --version
 
 # Build graph + inspect
 acb compile ./my-project -o project.acb
@@ -93,7 +93,7 @@ acb info project.acb
 acb query project.acb symbol --name "main"
 
 # MCP startup check (Ctrl+C after startup)
-$HOME/.local/bin/acb-mcp
+$HOME/.local/bin/agentic-codebase-mcp
 ```
 
 ## Artifact Contract

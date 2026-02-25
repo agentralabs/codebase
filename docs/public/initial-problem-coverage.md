@@ -13,7 +13,7 @@ This page records the **foundational problems AgenticCodebase already solved** b
 | ICB-I05 | Test blind spots before merge | `acb query test-gap`, `acb health` |
 | ICB-I06 | No enforceable pre-merge risk gate | `acb gate --max-risk --require-tests` |
 | ICB-I07 | No long-horizon artifact governance | `acb budget` + storage budget policy env vars |
-| ICB-I08 | No universal MCP code-intelligence surface | `acb-mcp` tool/resource surface |
+| ICB-I08 | No universal MCP code-intelligence surface | `agentic-codebase-mcp` tool/resource surface |
 
 ## AgenticCodebase verification snapshot
 

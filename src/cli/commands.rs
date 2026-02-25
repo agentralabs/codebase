@@ -69,7 +69,7 @@ impl StorageBudgetMode {
                    \x20 acb info my-project.acb             # inspect the graph\n\
                    \x20 acb query my-project.acb symbol --name UserService\n\
                    \x20 acb query my-project.acb impact --unit-id 42\n\n\
-                   For AI agent integration, use the companion MCP server: acb-mcp",
+                   For AI agent integration, use the companion MCP server: agentic-codebase-mcp",
     after_help = "Run 'acb <command> --help' for details on a specific command.\n\
                   Set ACB_LOG=debug for verbose tracing. Set NO_COLOR=1 to disable colors.",
     version

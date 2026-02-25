@@ -18,7 +18,7 @@ use std::io::{self, BufRead, Write};
 ///
 /// Reads newline-delimited JSON-RPC messages from stdin and writes
 /// responses to stdout.  This is the entry point used by the
-/// `acb-mcp` binary.
+/// `agentic-codebase-mcp` binary.
 pub fn serve_stdio() {
     let mut server = McpServer::new();
     let stdin = io::stdin();

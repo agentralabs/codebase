@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Enforced strict MCP parameter validation for `symbol_lookup.mode` and `impact_analysis.max_depth` to prevent silent fallbacks.
 - Switched per-project graph identity to canonical-path hashing to eliminate graph collisions for same-named folders.
 - Removed unsafe cached-graph fallback that could bind the wrong project graph in multi-project sessions.
-- Added runtime compile locking in `acb-mcp` and hardened launcher lock acquisition for concurrent startup reliability.
+- Added runtime compile locking in `agentic-codebase-mcp` and hardened launcher lock acquisition for concurrent startup reliability.
 - Added regression tests for deterministic/unique project identity keys.
 
 ## [0.1.4] - 2026-02-23
@@ -50,6 +50,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Temporal analysis: change history, stability scoring, coupling detection, failure prophecy
 - Collective intelligence: delta compression, pattern extraction, privacy filtering
 - CLI tool (`acb`) with compile, info, query, and get commands
-- MCP server (`acb-mcp`) with JSON-RPC 2.0 over stdio
+- MCP server (`agentic-codebase-mcp`) with JSON-RPC 2.0 over stdio
 - 386 tests (38 unit + 348 integration), 21 Criterion benchmarks
 - Research paper: "AgenticCodebase: A Semantic Code Compiler for Navigable, Predictive, and Collective Code Intelligence"

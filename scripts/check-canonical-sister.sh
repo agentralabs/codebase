@@ -130,7 +130,7 @@ assert_contains 'docs folder required for every sister' docs/ecosystem/CANONICAL
 assert_contains 'web docs wiring is mandatory before release' docs/ecosystem/CANONICAL_SISTER_KIT.md
 assert_contains 'Installer strength/completeness is mandatory for every new sister.' docs/ecosystem/CANONICAL_SISTER_KIT.md
 assert_contains 'Before implementing a new sister installer, review `agentic-memory/scripts/install.sh`, `agentic-vision/scripts/install.sh`, and `agentic-codebase/scripts/install.sh` as benchmark baselines.' docs/ecosystem/CANONICAL_SISTER_KIT.md
-assert_contains '`agentic-memory-mcp`, `agentic-vision-mcp`, and `acb-mcp` are treated as live ecosystem infrastructure.' docs/ecosystem/CANONICAL_SISTER_KIT.md
+assert_contains '`agentic-memory-mcp`, `agentic-vision-mcp`, and `agentic-codebase-mcp` are treated as live ecosystem infrastructure.' docs/ecosystem/CANONICAL_SISTER_KIT.md
 assert_contains 'New sister planning, implementation, and validation must explicitly use those MCP servers where applicable (design support, integration checks, stress/regression checks).' docs/ecosystem/CANONICAL_SISTER_KIT.md
 assert_contains '"key": "codebase"' docs/public/sister.manifest.json
 assert_contains '"name": "AgenticCodebase"' docs/public/sister.manifest.json

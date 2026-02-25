@@ -31,7 +31,7 @@ src/
   lib.rs              # Library root
   bin/
     acb.rs            # CLI binary
-    acb-mcp.rs        # MCP server binary
+    agentic-codebase-mcp.rs        # MCP server binary
   types/              # Core data types
   parse/              # tree-sitter parsers (Python, Rust, TS, Go)
   semantic/           # Cross-language analysis

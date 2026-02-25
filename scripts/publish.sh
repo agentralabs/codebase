@@ -99,7 +99,7 @@ echo "3. Running clippy..."
 cargo clippy --workspace -- -D warnings
 echo ""
 
-echo "4. Dry-run publish (single crate ships both acb and acb-mcp binaries)..."
+echo "4. Dry-run publish (single crate ships both acb and agentic-codebase-mcp binaries)..."
 cargo publish --dry-run
 echo ""
 
@@ -126,5 +126,5 @@ else
   echo ""
   echo "Note: agentic-codebase publishes both binaries:"
   echo "  - acb"
-  echo "  - acb-mcp"
+  echo "  - agentic-codebase-mcp"
 fi

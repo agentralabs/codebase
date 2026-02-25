@@ -28,7 +28,7 @@ cargo install agentic-codebase
 
 ```bash
 acb --version
-acb-mcp --version
+agentic-codebase-mcp --version
 ```
 
 ## After install

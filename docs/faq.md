@@ -86,7 +86,7 @@ Common CI use cases:
 
 ## How does the MCP server work?
 
-The `acb-mcp` binary implements the [Model Context Protocol](https://modelcontextprotocol.io/) over stdio. When an MCP-compatible client (Claude Desktop, VS Code, Cursor, Windsurf) connects, it receives:
+The `agentic-codebase-mcp` binary implements the [Model Context Protocol](https://modelcontextprotocol.io/) over stdio. When an MCP-compatible client (Claude Desktop, VS Code, Cursor, Windsurf) connects, it receives:
 
 - **Tools**: Functions the LLM can call (`acb_compile`, `acb_query`, `acb_info`, etc.)
 - **Resources**: Data the LLM can read (`acb://graphs/project/units`, etc.)

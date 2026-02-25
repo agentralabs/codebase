@@ -6,7 +6,7 @@
 curl -fsSL https://agentralabs.tech/install/codebase | bash
 ```
 
-Downloads pre-built `acb` + `acb-mcp` binaries, installs to `~/.local/bin/`, and merges MCP server config into Claude Desktop and Claude Code. Requires `curl` and `jq`.
+Downloads pre-built `acb` + `agentic-codebase-mcp` binaries, installs to `~/.local/bin/`, and merges MCP server config into Claude Desktop and Claude Code. Requires `curl` and `jq`.
 
 ### Install by environment
 
@@ -96,7 +96,7 @@ The MCP server exposes compiled graphs as tools, resources, and prompts to any M
 cargo install agentic-codebase
 ```
 
-This installs both the `acb` CLI and the `acb-mcp` MCP server binary.
+This installs both the `acb` CLI and the `agentic-codebase-mcp` MCP server binary.
 
 ### Configure Claude Desktop
 
@@ -106,7 +106,7 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
 {
   "mcpServers": {
     "agentic-codebase": {
-      "command": "acb-mcp",
+      "command": "agentic-codebase-mcp",
       "args": []
     }
   }
@@ -121,7 +121,7 @@ Add to `.vscode/settings.json`:
 {
   "mcp.servers": {
     "agentic-codebase": {
-      "command": "acb-mcp",
+      "command": "agentic-codebase-mcp",
       "args": []
     }
   }
@@ -136,7 +136,7 @@ Add to `~/.codeium/windsurf/mcp_config.json`:
 {
   "mcpServers": {
     "agentic-codebase": {
-      "command": "acb-mcp",
+      "command": "agentic-codebase-mcp",
       "args": []
     }
   }
@@ -208,7 +208,7 @@ AgenticCodebase is part of the Agentic ecosystem. Run all three MCP servers for 
       "args": ["serve"]
     },
     "codebase": {
-      "command": "acb-mcp",
+      "command": "agentic-codebase-mcp",
       "args": []
     }
   }
@@ -225,7 +225,7 @@ An agent can associate what it *knows* (memory), what it *sees* (vision), and wh
 git clone https://github.com/agentralabs/codebase.git
 cd agentic-codebase
 
-# Build both binaries (acb + acb-mcp)
+# Build both binaries (acb + agentic-codebase-mcp)
 cargo build --release
 
 # Install CLI
@@ -233,7 +233,7 @@ cargo install --path .
 
 # Or copy binaries directly
 cp target/release/acb /usr/local/bin/
-cp target/release/acb-mcp /usr/local/bin/
+cp target/release/agentic-codebase-mcp /usr/local/bin/
 ```
 
 ### Run tests
@@ -260,7 +260,7 @@ cargo bench
 |:---|:---|:---|
 | **agentic-codebase** (core crate) | [crates.io](https://crates.io/crates/agentic-codebase) | `cargo install agentic-codebase` |
 | **acb CLI binary** | Bundled in `agentic-codebase` crate | `cargo install agentic-codebase` |
-| **acb-mcp MCP binary** | Bundled in `agentic-codebase` crate | `cargo install agentic-codebase` |
+| **agentic-codebase-mcp MCP binary** | Bundled in `agentic-codebase` crate | `cargo install agentic-codebase` |
 | **One-line installer** | GitHub release artifacts | `curl -fsSL https://agentralabs.tech/install/codebase \| bash` |
 
 ---
@@ -299,7 +299,7 @@ xcode-select --install
 
 ```bash
 xattr -d com.apple.quarantine $(which acb)
-xattr -d com.apple.quarantine $(which acb-mcp)
+xattr -d com.apple.quarantine $(which agentic-codebase-mcp)
 ```
 
 ### MCP server doesn't respond
@@ -307,11 +307,11 @@ xattr -d com.apple.quarantine $(which acb-mcp)
 Check that the binary is accessible:
 
 ```bash
-which acb-mcp
+which agentic-codebase-mcp
 ```
 
 The server communicates via stdin/stdout (MCP stdio transport). If running manually, send a JSON-RPC initialize request to verify:
 
 ```bash
-echo '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"test","version":"1.0"}}}' | acb-mcp
+echo '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"test","version":"1.0"}}}' | agentic-codebase-mcp
 ```
