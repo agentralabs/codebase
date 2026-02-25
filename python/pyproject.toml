@@ -4,11 +4,11 @@ build-backend = "hatchling.build"
 
 [project]
 name = "agentic-codebase"
-version = "0.1.0"
+version = "0.1.1"
 description = "Semantic code compiler for AI agents"
 readme = "README.md"
 license = {text = "MIT"}
-authors = [{name = "Omoshola Owolabi"}]
+authors = [{name = "Agentra Labs"}]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
