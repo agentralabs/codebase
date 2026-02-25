@@ -105,6 +105,52 @@ Common options:
 - `--graph <file.acb>`
 - `--name <graph-name>`
 
+## MCP Tools
+
+All tools exposed by the `agentic-codebase-mcp` MCP server:
+
+### Core Tools
+
+| Tool | Purpose |
+|------|---------|
+| `symbol_lookup` | Look up symbols by name in the code graph |
+| `impact_analysis` | Analyse the impact of changing a code unit |
+| `graph_stats` | Get summary statistics about a loaded code graph |
+| `list_units` | List code units in a graph, optionally filtered by type |
+
+### Context Capture Tools
+
+| Tool | Purpose |
+|------|---------|
+| `analysis_log` | Log the intent and context behind a code analysis |
+
+### Grounding Tools (v0.2)
+
+| Tool | Purpose |
+|------|---------|
+| `codebase_ground` | Verify a code claim has graph evidence — zero hallucination |
+| `codebase_evidence` | Get graph evidence for a symbol name |
+| `codebase_suggest` | Find symbols similar to a name (for corrections) |
+
+### Workspace Tools (v0.2)
+
+| Tool | Purpose |
+|------|---------|
+| `workspace_create` | Create a workspace to load multiple codebases |
+| `workspace_add` | Add a codebase to an existing workspace |
+| `workspace_list` | List all contexts in a workspace |
+| `workspace_query` | Search across all codebases in workspace |
+| `workspace_compare` | Compare a symbol between source and target |
+| `workspace_xref` | Find where symbol exists/doesn't exist across contexts |
+
+### Translation Tools (v0.2)
+
+| Tool | Purpose |
+|------|---------|
+| `translation_record` | Record source-to-target symbol mapping |
+| `translation_progress` | Get migration progress statistics |
+| `translation_remaining` | List symbols not yet ported |
+
 ## Universal MCP entry
 
 ```json
