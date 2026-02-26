@@ -1,6 +1,6 @@
 [package]
 name = "agentic-codebase-mcp"
-version = "0.2.2"
+version = "0.2.3"
 edition = "2021"
 license = "MIT"
 repository = "https://github.com/agentralabs/agentic-codebase"
@@ -15,7 +15,7 @@ name = "agentic-codebase-mcp"
 path = "src/main.rs"
 
 [dependencies]
-agentic-codebase = { path = "../..", version = "0.2.2", features = ["stdio"] }
+agentic-codebase = { path = "../..", version = "0.2.3", features = ["stdio"] }
 clap = { version = "4", features = ["derive"] }
 sha2 = "0.10"
 walkdir = "2"

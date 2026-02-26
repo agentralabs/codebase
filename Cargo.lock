@@ -10,7 +10,7 @@ checksum = "320119579fcad9c21884f5c4861d16174d0e06250625266f50fe6898340abefa"
 
 [[package]]
 name = "agentic-codebase"
-version = "0.2.2"
+version = "0.2.3"
 dependencies = [
  "axum",
  "blake3",
@@ -46,7 +46,7 @@ dependencies = [
 
 [[package]]
 name = "agentic-codebase-cli"
-version = "0.2.2"
+version = "0.2.3"
 dependencies = [
  "agentic-codebase",
  "clap",
@@ -55,7 +55,7 @@ dependencies = [
 
 [[package]]
 name = "agentic-codebase-ffi"
-version = "0.2.2"
+version = "0.2.3"
 dependencies = [
  "agentic-codebase",
  "pyo3",
@@ -65,7 +65,7 @@ dependencies = [
 
 [[package]]
 name = "agentic-codebase-mcp"
-version = "0.2.2"
+version = "0.2.3"
 dependencies = [
  "agentic-codebase",
  "axum",

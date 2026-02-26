@@ -9,7 +9,7 @@ members = [
 exclude = ["npm/wasm"]
 
 [workspace.package]
-version = "0.2.2"
+version = "0.2.3"
 edition = "2021"
 license = "MIT"
 repository = "https://github.com/agentralabs/agentic-codebase"
@@ -19,7 +19,7 @@ authors = ["Agentra Labs <contact@agentralabs.tech>"]
 [package]
 default-run = "acb"
 name = "agentic-codebase"
-version = "0.2.2"
+version = "0.2.3"
 edition = "2021"
 license = "MIT"
 repository = "https://github.com/agentralabs/agentic-codebase"

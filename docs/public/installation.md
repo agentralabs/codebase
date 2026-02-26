@@ -21,7 +21,8 @@ curl -fsSL https://agentralabs.tech/install/codebase/server | bash
 ## Cargo
 
 ```bash
-cargo install agentic-codebase
+cargo install agentic-codebase-cli
+cargo install agentic-codebase-mcp
 ```
 
 ## npm

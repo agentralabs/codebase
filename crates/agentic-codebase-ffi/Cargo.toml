@@ -1,6 +1,6 @@
 [package]
 name = "agentic-codebase-ffi"
-version = "0.2.2"
+version = "0.2.3"
 edition = "2021"
 license = "MIT"
 repository = "https://github.com/agentralabs/agentic-codebase"
@@ -14,7 +14,7 @@ categories = ["api-bindings"]
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-agentic-codebase = { path = "../..", version = "0.2.2" }
+agentic-codebase = { path = "../..", version = "0.2.3" }
 pyo3 = { version = "0.20", features = ["extension-module"], optional = true }
 wasm-bindgen = { version = "0.2", optional = true }
 serde-wasm-bindgen = { version = "0.6", optional = true }

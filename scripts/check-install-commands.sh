@@ -36,7 +36,8 @@ assert_contains "curl -fsSL https://agentralabs.tech/install/codebase | bash" RE
 assert_contains "curl -fsSL https://agentralabs.tech/install/codebase/desktop | bash" README.md docs/quickstart.md INSTALL.md
 assert_contains "curl -fsSL https://agentralabs.tech/install/codebase/terminal | bash" README.md docs/quickstart.md INSTALL.md
 assert_contains "curl -fsSL https://agentralabs.tech/install/codebase/server | bash" README.md docs/quickstart.md INSTALL.md
-assert_contains "cargo install agentic-codebase" README.md docs/quickstart.md
+assert_contains "cargo install agentic-codebase-cli" README.md docs/quickstart.md docs/public/installation.md
+assert_contains "cargo install agentic-codebase-mcp" README.md docs/public/installation.md
 
 # Installer health
 bash -n scripts/install.sh
@@ -60,5 +61,8 @@ echo "$server_out" | grep -F 'TOKEN=$(openssl rand -hex 32)' >/dev/null \
 # Public package/repo health (stable URLs for CI)
 http_ok https://raw.githubusercontent.com/agentralabs/codebase/main/scripts/install.sh
 http_ok https://crates.io/api/v1/crates/agentic-codebase
+http_ok https://crates.io/api/v1/crates/agentic-codebase-cli
+http_ok https://crates.io/api/v1/crates/agentic-codebase-mcp
+http_ok https://crates.io/api/v1/crates/agentic-codebase-ffi
 
 echo "Install command guardrails passed (codebase)."

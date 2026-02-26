@@ -1,6 +1,6 @@
 [package]
 name = "agentic-codebase-cli"
-version = "0.2.2"
+version = "0.2.3"
 edition = "2021"
 license = "MIT"
 repository = "https://github.com/agentralabs/agentic-codebase"
@@ -15,6 +15,6 @@ name = "acb"
 path = "src/main.rs"
 
 [dependencies]
-agentic-codebase = { path = "../..", version = "0.2.2" }
+agentic-codebase = { path = "../..", version = "0.2.3" }
 clap = { version = "4", features = ["derive"] }
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }

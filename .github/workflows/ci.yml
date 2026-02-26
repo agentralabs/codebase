@@ -35,3 +35,17 @@ jobs:
 
       - name: Build release
         run: cargo build --workspace --release
+
+  guardrails:
+    name: Guardrails
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install command guardrails
+        run: bash scripts/check-install-commands.sh
+      - name: Canonical sister guardrails
+        run: bash scripts/check-canonical-sister.sh
+      - name: Runtime hardening guardrails
+        run: bash scripts/check-runtime-hardening.sh
+      - name: Primary problem regression
+        run: bash scripts/test-primary-problems.sh
