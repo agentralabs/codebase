@@ -207,7 +207,9 @@ fn run_stdio_loop<R: BufRead + Read, W: Write>(
                 }
                 let raw = String::from_utf8_lossy(&buf).to_string();
                 let response = server.handle_raw(raw.trim());
-                if let Some(ref mut g) = ghost { g.sync(server); }
+                if let Some(ref mut g) = ghost {
+                    g.sync(server);
+                }
                 if !response.is_empty() && write_framed(writer, &response).is_err() {
                     break;
                 }
@@ -224,7 +226,9 @@ fn run_stdio_loop<R: BufRead + Read, W: Write>(
         }
 
         let response = server.handle_raw(trimmed);
-        if let Some(ref mut g) = ghost { g.sync(server); }
+        if let Some(ref mut g) = ghost {
+            g.sync(server);
+        }
         if response.is_empty() {
             continue;
         }

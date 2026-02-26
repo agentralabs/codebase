@@ -73,14 +73,7 @@ impl CppParser {
                     );
                 }
                 "namespace_definition" => {
-                    self.extract_namespace(
-                        child,
-                        source,
-                        file_path,
-                        units,
-                        next_id,
-                        parent_qname,
-                    );
+                    self.extract_namespace(child, source, file_path, units, next_id, parent_qname);
                 }
                 "enum_specifier" => {
                     if let Some(unit) =
@@ -91,14 +84,7 @@ impl CppParser {
                 }
                 "template_declaration" => {
                     // Recurse into the template body to find the actual declaration
-                    self.extract_from_node(
-                        child,
-                        source,
-                        file_path,
-                        units,
-                        next_id,
-                        parent_qname,
-                    );
+                    self.extract_from_node(child, source, file_path, units, next_id, parent_qname);
                 }
                 "preproc_include" => {
                     if let Some(unit) =
@@ -109,14 +95,7 @@ impl CppParser {
                 }
                 // Top-level declarations wrapped in linkage_specification (extern "C" { ... })
                 "linkage_specification" => {
-                    self.extract_from_node(
-                        child,
-                        source,
-                        file_path,
-                        units,
-                        next_id,
-                        parent_qname,
-                    );
+                    self.extract_from_node(child, source, file_path, units, next_id, parent_qname);
                 }
                 _ => {}
             }
@@ -145,8 +124,13 @@ impl CppParser {
             CodeUnitType::Function
         };
 
-        let mut unit =
-            RawCodeUnit::new(unit_type, Language::Cpp, name, file_path.to_path_buf(), span);
+        let mut unit = RawCodeUnit::new(
+            unit_type,
+            Language::Cpp,
+            name,
+            file_path.to_path_buf(),
+            span,
+        );
         unit.temp_id = id;
         unit.qualified_name = qname;
         unit.visibility = Visibility::Public;
@@ -246,13 +230,9 @@ impl CppParser {
                 }
                 "declaration" | "field_declaration" => {
                     // Check if it's a method declaration inside a class
-                    if let Some(unit) = self.extract_declaration(
-                        child,
-                        source,
-                        file_path,
-                        parent_qname,
-                        next_id,
-                    ) {
+                    if let Some(unit) =
+                        self.extract_declaration(child, source, file_path, parent_qname, next_id)
+                    {
                         units.push(unit);
                     }
                 }
@@ -345,8 +325,13 @@ impl CppParser {
         let id = *next_id;
         *next_id += 1;
 
-        let mut unit =
-            RawCodeUnit::new(CodeUnitType::Type, Language::Cpp, name, file_path.to_path_buf(), span);
+        let mut unit = RawCodeUnit::new(
+            CodeUnitType::Type,
+            Language::Cpp,
+            name,
+            file_path.to_path_buf(),
+            span,
+        );
         unit.temp_id = id;
         unit.qualified_name = qname;
         unit.visibility = Visibility::Public;
@@ -437,10 +422,7 @@ impl LanguageParser for CppParser {
     }
 
     fn is_test_file(&self, path: &Path, _source: &str) -> bool {
-        let name = path
-            .file_name()
-            .and_then(|n| n.to_str())
-            .unwrap_or("");
+        let name = path.file_name().and_then(|n| n.to_str()).unwrap_or("");
         name.ends_with("_test.cpp")
             || name.ends_with("_test.cc")
             || name.starts_with("test_")

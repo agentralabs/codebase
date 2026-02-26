@@ -103,7 +103,10 @@ fn build_codebase_context(server: &agentic_codebase::mcp::McpServer) -> String {
                 .as_deref()
                 .map(|g| format!(" [{}]", g))
                 .unwrap_or_default();
-            md.push_str(&format!("- `{}`{} — {summary}\n", record.tool_name, graph_tag));
+            md.push_str(&format!(
+                "- `{}`{} — {summary}\n",
+                record.tool_name, graph_tag
+            ));
         }
         md.push('\n');
     }
@@ -160,10 +163,26 @@ fn detect_all_memory_dirs() -> Vec<ClientDir> {
     };
 
     let candidates = [
-        ("Claude Code", home.join(".claude").join("memory"), "CODEBASE_CONTEXT.md"),
-        ("Cursor", home.join(".cursor").join("memory"), "agentic-codebase.md"),
-        ("Windsurf", home.join(".windsurf").join("memory"), "agentic-codebase.md"),
-        ("Cody", home.join(".sourcegraph").join("cody").join("memory"), "agentic-codebase.md"),
+        (
+            "Claude Code",
+            home.join(".claude").join("memory"),
+            "CODEBASE_CONTEXT.md",
+        ),
+        (
+            "Cursor",
+            home.join(".cursor").join("memory"),
+            "agentic-codebase.md",
+        ),
+        (
+            "Windsurf",
+            home.join(".windsurf").join("memory"),
+            "agentic-codebase.md",
+        ),
+        (
+            "Cody",
+            home.join(".sourcegraph").join("cody").join("memory"),
+            "agentic-codebase.md",
+        ),
     ];
 
     let mut dirs = Vec::new();

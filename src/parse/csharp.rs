@@ -92,14 +92,7 @@ impl CSharpParser {
                     );
                 }
                 "namespace_declaration" | "file_scoped_namespace_declaration" => {
-                    self.extract_namespace(
-                        child,
-                        source,
-                        file_path,
-                        units,
-                        next_id,
-                        parent_qname,
-                    );
+                    self.extract_namespace(child, source, file_path, units, next_id, parent_qname);
                 }
                 "method_declaration" | "constructor_declaration" => {
                     if let Some(unit) =
@@ -124,14 +117,7 @@ impl CSharpParser {
                 }
                 // Recurse into declaration_list (body of namespace/class)
                 "declaration_list" => {
-                    self.extract_from_node(
-                        child,
-                        source,
-                        file_path,
-                        units,
-                        next_id,
-                        parent_qname,
-                    );
+                    self.extract_from_node(child, source, file_path, units, next_id, parent_qname);
                 }
                 _ => {}
             }
@@ -369,13 +355,8 @@ impl LanguageParser for CSharpParser {
     }
 
     fn is_test_file(&self, path: &Path, _source: &str) -> bool {
-        let name = path
-            .file_name()
-            .and_then(|n| n.to_str())
-            .unwrap_or("");
-        name.ends_with("Tests.cs")
-            || name.ends_with("Test.cs")
-            || name.starts_with("Test")
+        let name = path.file_name().and_then(|n| n.to_str()).unwrap_or("");
+        name.ends_with("Tests.cs") || name.ends_with("Test.cs") || name.starts_with("Test")
     }
 }
 

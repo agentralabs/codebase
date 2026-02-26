@@ -175,8 +175,13 @@ impl JavaParser {
             CodeUnitType::Function
         };
 
-        let mut unit =
-            RawCodeUnit::new(unit_type, Language::Java, name, file_path.to_path_buf(), span);
+        let mut unit = RawCodeUnit::new(
+            unit_type,
+            Language::Java,
+            name,
+            file_path.to_path_buf(),
+            span,
+        );
         unit.temp_id = id;
         unit.qualified_name = qname;
         unit.visibility = vis;
@@ -259,10 +264,7 @@ impl LanguageParser for JavaParser {
     }
 
     fn is_test_file(&self, path: &Path, _source: &str) -> bool {
-        let name = path
-            .file_name()
-            .and_then(|n| n.to_str())
-            .unwrap_or("");
+        let name = path.file_name().and_then(|n| n.to_str()).unwrap_or("");
         name.ends_with("Test.java")
             || name.ends_with("Tests.java")
             || name.starts_with("Test")
