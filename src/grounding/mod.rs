@@ -21,9 +21,21 @@
 //!
 //! [`CodeGraph`]: crate::graph::CodeGraph
 
+pub mod citation;
 mod engine;
+pub mod hallucination;
+pub mod truth;
 
+pub use citation::{
+    Citation, CitationEngine, CitationStrength, CodeLocation, GroundedClaim, UngroundedClaim,
+    UngroundedReason,
+};
 pub use engine::{extract_code_references, GroundingEngine};
+pub use hallucination::{
+    Hallucination, HallucinationCheck, HallucinationDetector, HallucinationSeverity,
+    HallucinationType,
+};
+pub use truth::{MaintainedTruth, TruthInvalidation, TruthMaintainer, TruthStatus};
 
 /// Result of grounding a claim against the code graph.
 #[derive(Debug, Clone)]

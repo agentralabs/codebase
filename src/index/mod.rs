@@ -8,11 +8,15 @@
 pub mod embedding_index;
 pub mod language_index;
 pub mod path_index;
+pub mod semantic_search;
 pub mod symbol_index;
 pub mod type_index;
 
 pub use embedding_index::{EmbeddingIndex, EmbeddingMatch};
 pub use language_index::LanguageIndex;
 pub use path_index::PathIndex;
+pub use semantic_search::{
+    QueryIntent, SemanticMatch, SemanticQuery, SemanticSearchEngine, SemanticSearchResult,
+};
 pub use symbol_index::SymbolIndex;
 pub use type_index::TypeIndex;

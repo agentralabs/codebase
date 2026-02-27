@@ -1,3 +1,4 @@
+#![recursion_limit = "512"]
 //! AgenticCodebase — Semantic code compiler for AI agents.
 //!
 //! Transforms source code into a navigable graph of concepts, relationships,

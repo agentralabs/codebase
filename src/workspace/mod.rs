@@ -33,9 +33,14 @@
 //! let progress = tmap.progress();
 //! ```
 
+pub mod compare;
 mod manager;
 mod translation;
 
+pub use compare::{
+    CodebaseComparer, CodebaseComparison, ComparisonSummary, ConceptualDiff, MigrationStep,
+    PatternDiff, StructuralDiff,
+};
 pub use manager::{
     CodebaseContext, Comparison, ContextComparison, ContextRole, CrossContextResult,
     CrossReference, SymbolMatch, Workspace, WorkspaceManager,

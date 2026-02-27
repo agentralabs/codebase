@@ -395,9 +395,15 @@ fn rapid_fire_100_mixed_tools() {
     let mut server = create_loaded_server();
     let tool_rotation = [
         ("graph_stats", json!({"graph": "test"})),
-        ("symbol_lookup", json!({"graph": "test", "name": "process_data"})),
+        (
+            "symbol_lookup",
+            json!({"graph": "test", "name": "process_data"}),
+        ),
         ("list_units", json!({"graph": "test"})),
-        ("codebase_ground", json!({"graph": "test", "claim": "There is a function"})),
+        (
+            "codebase_ground",
+            json!({"graph": "test", "claim": "There is a function"}),
+        ),
         ("concept_find", json!({"graph": "test", "query": "config"})),
         ("pattern_extract", json!({"graph": "test"})),
         ("architecture_infer", json!({"graph": "test"})),
@@ -870,12 +876,7 @@ fn archaeology_when_valid() {
 #[test]
 fn pattern_extract_on_graph() {
     let mut server = create_loaded_server();
-    let resp = tool_call(
-        &mut server,
-        95,
-        "pattern_extract",
-        json!({"graph": "test"}),
-    );
+    let resp = tool_call(&mut server, 95, "pattern_extract", json!({"graph": "test"}));
     assert!(resp.get("result").is_some() || resp.get("error").is_some());
 }
 
@@ -894,12 +895,7 @@ fn pattern_check_on_graph() {
 #[test]
 fn pattern_suggest_on_graph() {
     let mut server = create_loaded_server();
-    let resp = tool_call(
-        &mut server,
-        97,
-        "pattern_suggest",
-        json!({"graph": "test"}),
-    );
+    let resp = tool_call(&mut server, 97, "pattern_suggest", json!({"graph": "test"}));
     assert!(resp.get("result").is_some() || resp.get("error").is_some());
 }
 
@@ -1098,12 +1094,7 @@ fn concept_find_with_graph() {
 #[test]
 fn concept_map_with_graph() {
     let mut server = create_loaded_server();
-    let resp = tool_call(
-        &mut server,
-        141,
-        "concept_map",
-        json!({"graph": "test"}),
-    );
+    let resp = tool_call(&mut server, 141, "concept_map", json!({"graph": "test"}));
     assert!(resp.get("result").is_some() || resp.get("error").is_some());
 }
 

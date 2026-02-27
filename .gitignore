@@ -57,3 +57,6 @@ SPEC-*.md
 .agentra/
 docs/REPO_HYGIENE.md
 ECOSYSTEM-CONVENTIONS.md
+
+# Local goals (internal only)
+goals/

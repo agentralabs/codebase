@@ -2229,7 +2229,10 @@ impl McpServer {
         };
         let unit_id = args.get("unit_id").and_then(|v| v.as_u64()).unwrap_or(0);
         let max_depth = args.get("max_depth").and_then(|v| v.as_u64()).unwrap_or(5) as u32;
-        let change_type_str = args.get("change_type").and_then(|v| v.as_str()).unwrap_or("behavior");
+        let change_type_str = args
+            .get("change_type")
+            .and_then(|v| v.as_str())
+            .unwrap_or("behavior");
         let change_type = match change_type_str {
             "signature" => crate::engine::impact::ChangeType::Signature,
             "deletion" => crate::engine::impact::ChangeType::Deletion,
@@ -2247,7 +2250,10 @@ impl McpServer {
         let result = analyzer.analyze(change, max_depth);
         let viz = analyzer.visualize(&result);
 
-        JsonRpcResponse::success(id, json!({ "content": [{ "type": "text", "text": serde_json::to_string_pretty(&viz).unwrap_or_default() }] }))
+        JsonRpcResponse::success(
+            id,
+            json!({ "content": [{ "type": "text", "text": serde_json::to_string_pretty(&viz).unwrap_or_default() }] }),
+        )
     }
 
     fn tool_impact_path(&self, id: Value, args: &Value) -> JsonRpcResponse {
@@ -2261,7 +2267,10 @@ impl McpServer {
         let analyzer = crate::engine::impact::ImpactAnalyzer::new(graph);
         let path = analyzer.impact_path(from, to);
 
-        JsonRpcResponse::success(id, json!({ "content": [{ "type": "text", "text": serde_json::to_string_pretty(&json!({ "from": from, "to": to, "path": path })).unwrap_or_default() }] }))
+        JsonRpcResponse::success(
+            id,
+            json!({ "content": [{ "type": "text", "text": serde_json::to_string_pretty(&json!({ "from": from, "to": to, "path": path })).unwrap_or_default() }] }),
+        )
     }
 
     // ── 2. Enhanced Code Prophecy ───────────────────────────────────────
@@ -2278,7 +2287,10 @@ impl McpServer {
         let horizon = crate::temporal::prophecy_v2::ProphecyHorizon::MediumTerm;
         let result = engine.prophecy(subject, horizon);
 
-        JsonRpcResponse::success(id, json!({ "content": [{ "type": "text", "text": serde_json::to_string_pretty(&result).unwrap_or_default() }] }))
+        JsonRpcResponse::success(
+            id,
+            json!({ "content": [{ "type": "text", "text": serde_json::to_string_pretty(&result).unwrap_or_default() }] }),
+        )
     }
 
     fn tool_prophecy_if(&self, id: Value, args: &Value) -> JsonRpcResponse {
@@ -2287,7 +2299,10 @@ impl McpServer {
             Err(e) => return JsonRpcResponse::error(id, e),
         };
         let unit_id = args.get("unit_id").and_then(|v| v.as_u64()).unwrap_or(0);
-        let change_type_str = args.get("change_type").and_then(|v| v.as_str()).unwrap_or("behavior");
+        let change_type_str = args
+            .get("change_type")
+            .and_then(|v| v.as_str())
+            .unwrap_or("behavior");
 
         let engine = crate::temporal::prophecy_v2::EnhancedProphecyEngine::new(graph);
         let subject = crate::temporal::prophecy_v2::ProphecySubject::Node(unit_id);
@@ -2295,7 +2310,10 @@ impl McpServer {
         let scenario = format!("{} change to unit {}", change_type_str, unit_id);
         let result = engine.prophecy_if(subject, &scenario, horizon);
 
-        JsonRpcResponse::success(id, json!({ "content": [{ "type": "text", "text": serde_json::to_string_pretty(&result).unwrap_or_default() }] }))
+        JsonRpcResponse::success(
+            id,
+            json!({ "content": [{ "type": "text", "text": serde_json::to_string_pretty(&result).unwrap_or_default() }] }),
+        )
     }
 
     // ── 3. Regression Oracle ────────────────────────────────────────────
@@ -2311,15 +2329,24 @@ impl McpServer {
         let predictor = crate::engine::regression::RegressionPredictor::new(graph);
         let oracle = predictor.predict(unit_id, max_depth);
 
-        let results: Vec<Value> = oracle.likely_failures.iter().map(|p| json!({
-            "test_id": p.test.unit_id,
-            "test_function": p.test.function,
-            "test_file": p.test.file,
-            "failure_probability": p.failure_probability,
-            "reason": p.reason,
-        })).collect();
+        let results: Vec<Value> = oracle
+            .likely_failures
+            .iter()
+            .map(|p| {
+                json!({
+                    "test_id": p.test.unit_id,
+                    "test_function": p.test.function,
+                    "test_file": p.test.file,
+                    "failure_probability": p.failure_probability,
+                    "reason": p.reason,
+                })
+            })
+            .collect();
 
-        JsonRpcResponse::success(id, json!({ "content": [{ "type": "text", "text": serde_json::to_string_pretty(&json!({ "changed_unit": unit_id, "likely_failures": results, "safe_to_skip": oracle.safe_to_skip.len() })).unwrap_or_default() }] }))
+        JsonRpcResponse::success(
+            id,
+            json!({ "content": [{ "type": "text", "text": serde_json::to_string_pretty(&json!({ "changed_unit": unit_id, "likely_failures": results, "safe_to_skip": oracle.safe_to_skip.len() })).unwrap_or_default() }] }),
+        )
     }
 
     fn tool_regression_minimal(&self, id: Value, args: &Value) -> JsonRpcResponse {
@@ -2328,18 +2355,29 @@ impl McpServer {
             Err(e) => return JsonRpcResponse::error(id, e),
         };
         let unit_id = args.get("unit_id").and_then(|v| v.as_u64()).unwrap_or(0);
-        let _threshold = args.get("threshold").and_then(|v| v.as_f64()).unwrap_or(0.5);
+        let _threshold = args
+            .get("threshold")
+            .and_then(|v| v.as_f64())
+            .unwrap_or(0.5);
 
         let predictor = crate::engine::regression::RegressionPredictor::new(graph);
         let minimal = predictor.minimal_test_set(unit_id);
 
-        let results: Vec<Value> = minimal.iter().map(|t| json!({
-            "test_id": t.unit_id,
-            "test_function": t.function,
-            "test_file": t.file,
-        })).collect();
+        let results: Vec<Value> = minimal
+            .iter()
+            .map(|t| {
+                json!({
+                    "test_id": t.unit_id,
+                    "test_function": t.function,
+                    "test_file": t.file,
+                })
+            })
+            .collect();
 
-        JsonRpcResponse::success(id, json!({ "content": [{ "type": "text", "text": serde_json::to_string_pretty(&json!({ "changed_unit": unit_id, "minimal_tests": results })).unwrap_or_default() }] }))
+        JsonRpcResponse::success(
+            id,
+            json!({ "content": [{ "type": "text", "text": serde_json::to_string_pretty(&json!({ "changed_unit": unit_id, "minimal_tests": results })).unwrap_or_default() }] }),
+        )
     }
 
     // ── 4. Citation Engine ──────────────────────────────────────────────
@@ -2354,7 +2392,10 @@ impl McpServer {
         let engine = crate::grounding::citation::CitationEngine::new(graph);
         let result = engine.ground_claim(claim);
 
-        JsonRpcResponse::success(id, json!({ "content": [{ "type": "text", "text": serde_json::to_string_pretty(&result).unwrap_or_default() }] }))
+        JsonRpcResponse::success(
+            id,
+            json!({ "content": [{ "type": "text", "text": serde_json::to_string_pretty(&result).unwrap_or_default() }] }),
+        )
     }
 
     fn tool_codebase_cite(&self, id: Value, args: &Value) -> JsonRpcResponse {
@@ -2367,7 +2408,10 @@ impl McpServer {
         let engine = crate::grounding::citation::CitationEngine::new(graph);
         let citation = engine.cite_node(unit_id);
 
-        JsonRpcResponse::success(id, json!({ "content": [{ "type": "text", "text": serde_json::to_string_pretty(&json!({ "unit_id": unit_id, "citation": citation })).unwrap_or_default() }] }))
+        JsonRpcResponse::success(
+            id,
+            json!({ "content": [{ "type": "text", "text": serde_json::to_string_pretty(&json!({ "unit_id": unit_id, "citation": citation })).unwrap_or_default() }] }),
+        )
     }
 
     // ── 5. Hallucination Detector ───────────────────────────────────────
@@ -2382,7 +2426,10 @@ impl McpServer {
         let detector = crate::grounding::hallucination::HallucinationDetector::new(graph);
         let result = detector.check_output(output);
 
-        JsonRpcResponse::success(id, json!({ "content": [{ "type": "text", "text": serde_json::to_string_pretty(&result).unwrap_or_default() }] }))
+        JsonRpcResponse::success(
+            id,
+            json!({ "content": [{ "type": "text", "text": serde_json::to_string_pretty(&result).unwrap_or_default() }] }),
+        )
     }
 
     // ── 6. Truth Maintenance ────────────────────────────────────────────
@@ -2397,7 +2444,10 @@ impl McpServer {
         let mut maintainer = crate::grounding::truth::TruthMaintainer::new(graph);
         let truth = maintainer.register_truth(claim);
 
-        JsonRpcResponse::success(id, json!({ "content": [{ "type": "text", "text": serde_json::to_string_pretty(&truth).unwrap_or_default() }] }))
+        JsonRpcResponse::success(
+            id,
+            json!({ "content": [{ "type": "text", "text": serde_json::to_string_pretty(&truth).unwrap_or_default() }] }),
+        )
     }
 
     fn tool_truth_check(&self, id: Value, args: &Value) -> JsonRpcResponse {
@@ -2410,7 +2460,10 @@ impl McpServer {
         let maintainer = crate::grounding::truth::TruthMaintainer::new(graph);
         let result = maintainer.check_truth(claim);
 
-        JsonRpcResponse::success(id, json!({ "content": [{ "type": "text", "text": serde_json::to_string_pretty(&json!({ "claim": claim, "status": format!("{:?}", result) })).unwrap_or_default() }] }))
+        JsonRpcResponse::success(
+            id,
+            json!({ "content": [{ "type": "text", "text": serde_json::to_string_pretty(&json!({ "claim": claim, "status": format!("{:?}", result) })).unwrap_or_default() }] }),
+        )
     }
 
     // ── 7. Concept Navigation ───────────────────────────────────────────
@@ -2429,7 +2482,10 @@ impl McpServer {
         };
         let result = navigator.find_concept(query);
 
-        JsonRpcResponse::success(id, json!({ "content": [{ "type": "text", "text": serde_json::to_string_pretty(&result).unwrap_or_default() }] }))
+        JsonRpcResponse::success(
+            id,
+            json!({ "content": [{ "type": "text", "text": serde_json::to_string_pretty(&result).unwrap_or_default() }] }),
+        )
     }
 
     fn tool_concept_map(&self, id: Value, args: &Value) -> JsonRpcResponse {
@@ -2441,13 +2497,21 @@ impl McpServer {
         let navigator = crate::semantic::concept_nav::ConceptNavigator::new(graph);
         let concepts = navigator.map_all_concepts();
 
-        let results: Vec<Value> = concepts.iter().map(|c| json!({
-            "name": c.name,
-            "description": c.description,
-            "implementation_count": c.implementations.len(),
-        })).collect();
+        let results: Vec<Value> = concepts
+            .iter()
+            .map(|c| {
+                json!({
+                    "name": c.name,
+                    "description": c.description,
+                    "implementation_count": c.implementations.len(),
+                })
+            })
+            .collect();
 
-        JsonRpcResponse::success(id, json!({ "content": [{ "type": "text", "text": serde_json::to_string_pretty(&json!({ "concepts": results })).unwrap_or_default() }] }))
+        JsonRpcResponse::success(
+            id,
+            json!({ "content": [{ "type": "text", "text": serde_json::to_string_pretty(&json!({ "concepts": results })).unwrap_or_default() }] }),
+        )
     }
 
     fn tool_concept_explain(&self, id: Value, args: &Value) -> JsonRpcResponse {
@@ -2460,7 +2524,10 @@ impl McpServer {
         let navigator = crate::semantic::concept_nav::ConceptNavigator::new(graph);
         let result = navigator.explain_concept(concept);
 
-        JsonRpcResponse::success(id, json!({ "content": [{ "type": "text", "text": serde_json::to_string_pretty(&result).unwrap_or_default() }] }))
+        JsonRpcResponse::success(
+            id,
+            json!({ "content": [{ "type": "text", "text": serde_json::to_string_pretty(&result).unwrap_or_default() }] }),
+        )
     }
 
     // ── 8. Architecture Inference ───────────────────────────────────────
@@ -2475,7 +2542,10 @@ impl McpServer {
         let architecture = inferrer.infer();
         let diagram = inferrer.diagram(&architecture);
 
-        JsonRpcResponse::success(id, json!({ "content": [{ "type": "text", "text": serde_json::to_string_pretty(&json!({ "architecture": architecture, "diagram": diagram })).unwrap_or_default() }] }))
+        JsonRpcResponse::success(
+            id,
+            json!({ "content": [{ "type": "text", "text": serde_json::to_string_pretty(&json!({ "architecture": architecture, "diagram": diagram })).unwrap_or_default() }] }),
+        )
     }
 
     fn tool_architecture_validate(&self, id: Value, args: &Value) -> JsonRpcResponse {
@@ -2488,14 +2558,22 @@ impl McpServer {
         let architecture = inferrer.infer();
         let anomalies = inferrer.validate(architecture.pattern);
 
-        let results: Vec<Value> = anomalies.iter().map(|a| json!({
-            "description": a.description,
-            "severity": format!("{:?}", a.severity),
-            "expected": a.expected,
-            "actual": a.actual,
-        })).collect();
+        let results: Vec<Value> = anomalies
+            .iter()
+            .map(|a| {
+                json!({
+                    "description": a.description,
+                    "severity": format!("{:?}", a.severity),
+                    "expected": a.expected,
+                    "actual": a.actual,
+                })
+            })
+            .collect();
 
-        JsonRpcResponse::success(id, json!({ "content": [{ "type": "text", "text": serde_json::to_string_pretty(&json!({ "anomalies": results, "count": results.len() })).unwrap_or_default() }] }))
+        JsonRpcResponse::success(
+            id,
+            json!({ "content": [{ "type": "text", "text": serde_json::to_string_pretty(&json!({ "anomalies": results, "count": results.len() })).unwrap_or_default() }] }),
+        )
     }
 
     // ── 9. Semantic Search ──────────────────────────────────────────────
@@ -2511,7 +2589,10 @@ impl McpServer {
         let engine = crate::index::semantic_search::SemanticSearchEngine::new(graph);
         let result = engine.search(query, top_k);
 
-        JsonRpcResponse::success(id, json!({ "content": [{ "type": "text", "text": serde_json::to_string_pretty(&result).unwrap_or_default() }] }))
+        JsonRpcResponse::success(
+            id,
+            json!({ "content": [{ "type": "text", "text": serde_json::to_string_pretty(&result).unwrap_or_default() }] }),
+        )
     }
 
     fn tool_search_similar(&self, id: Value, args: &Value) -> JsonRpcResponse {
@@ -2525,7 +2606,10 @@ impl McpServer {
         let engine = crate::index::semantic_search::SemanticSearchEngine::new(graph);
         let results = engine.find_similar(unit_id, top_k);
 
-        JsonRpcResponse::success(id, json!({ "content": [{ "type": "text", "text": serde_json::to_string_pretty(&json!({ "unit_id": unit_id, "similar": results })).unwrap_or_default() }] }))
+        JsonRpcResponse::success(
+            id,
+            json!({ "content": [{ "type": "text", "text": serde_json::to_string_pretty(&json!({ "unit_id": unit_id, "similar": results })).unwrap_or_default() }] }),
+        )
     }
 
     fn tool_search_explain(&self, id: Value, args: &Value) -> JsonRpcResponse {
@@ -2539,7 +2623,10 @@ impl McpServer {
         let engine = crate::index::semantic_search::SemanticSearchEngine::new(graph);
         let explanation = engine.explain_match(unit_id, query);
 
-        JsonRpcResponse::success(id, json!({ "content": [{ "type": "text", "text": serde_json::to_string_pretty(&json!({ "unit_id": unit_id, "query": query, "explanation": explanation })).unwrap_or_default() }] }))
+        JsonRpcResponse::success(
+            id,
+            json!({ "content": [{ "type": "text", "text": serde_json::to_string_pretty(&json!({ "unit_id": unit_id, "query": query, "explanation": explanation })).unwrap_or_default() }] }),
+        )
     }
 
     // ── 10. Multi-Codebase Compare ──────────────────────────────────────
@@ -2554,16 +2641,24 @@ impl McpServer {
             Err(e) => return JsonRpcResponse::error(id, JsonRpcError::invalid_params(e)),
         };
         if workspace.contexts.len() < 2 {
-            return JsonRpcResponse::error(id, JsonRpcError::invalid_params("Need at least 2 contexts in workspace to compare"));
+            return JsonRpcResponse::error(
+                id,
+                JsonRpcError::invalid_params("Need at least 2 contexts in workspace to compare"),
+            );
         }
 
         let comparer = crate::workspace::compare::CodebaseComparer::new(
-            &workspace.contexts[0].graph, &workspace.contexts[0].id,
-            &workspace.contexts[1].graph, &workspace.contexts[1].id,
+            &workspace.contexts[0].graph,
+            &workspace.contexts[0].id,
+            &workspace.contexts[1].graph,
+            &workspace.contexts[1].id,
         );
         let result = comparer.compare();
 
-        JsonRpcResponse::success(id, json!({ "content": [{ "type": "text", "text": serde_json::to_string_pretty(&result).unwrap_or_default() }] }))
+        JsonRpcResponse::success(
+            id,
+            json!({ "content": [{ "type": "text", "text": serde_json::to_string_pretty(&result).unwrap_or_default() }] }),
+        )
     }
 
     fn tool_compare_concept(&self, id: Value, args: &Value) -> JsonRpcResponse {
@@ -2577,16 +2672,24 @@ impl McpServer {
             Err(e) => return JsonRpcResponse::error(id, JsonRpcError::invalid_params(e)),
         };
         if workspace.contexts.len() < 2 {
-            return JsonRpcResponse::error(id, JsonRpcError::invalid_params("Need at least 2 contexts"));
+            return JsonRpcResponse::error(
+                id,
+                JsonRpcError::invalid_params("Need at least 2 contexts"),
+            );
         }
 
         let comparer = crate::workspace::compare::CodebaseComparer::new(
-            &workspace.contexts[0].graph, &workspace.contexts[0].id,
-            &workspace.contexts[1].graph, &workspace.contexts[1].id,
+            &workspace.contexts[0].graph,
+            &workspace.contexts[0].id,
+            &workspace.contexts[1].graph,
+            &workspace.contexts[1].id,
         );
         let result = comparer.compare_concept(concept);
 
-        JsonRpcResponse::success(id, json!({ "content": [{ "type": "text", "text": serde_json::to_string_pretty(&result).unwrap_or_default() }] }))
+        JsonRpcResponse::success(
+            id,
+            json!({ "content": [{ "type": "text", "text": serde_json::to_string_pretty(&result).unwrap_or_default() }] }),
+        )
     }
 
     fn tool_compare_migrate(&self, id: Value, args: &Value) -> JsonRpcResponse {
@@ -2599,16 +2702,24 @@ impl McpServer {
             Err(e) => return JsonRpcResponse::error(id, JsonRpcError::invalid_params(e)),
         };
         if workspace.contexts.len() < 2 {
-            return JsonRpcResponse::error(id, JsonRpcError::invalid_params("Need at least 2 contexts"));
+            return JsonRpcResponse::error(
+                id,
+                JsonRpcError::invalid_params("Need at least 2 contexts"),
+            );
         }
 
         let comparer = crate::workspace::compare::CodebaseComparer::new(
-            &workspace.contexts[0].graph, &workspace.contexts[0].id,
-            &workspace.contexts[1].graph, &workspace.contexts[1].id,
+            &workspace.contexts[0].graph,
+            &workspace.contexts[0].id,
+            &workspace.contexts[1].graph,
+            &workspace.contexts[1].id,
         );
         let plan = comparer.migration_plan();
 
-        JsonRpcResponse::success(id, json!({ "content": [{ "type": "text", "text": serde_json::to_string_pretty(&plan).unwrap_or_default() }] }))
+        JsonRpcResponse::success(
+            id,
+            json!({ "content": [{ "type": "text", "text": serde_json::to_string_pretty(&plan).unwrap_or_default() }] }),
+        )
     }
 
     // ── 11. Version Archaeology ─────────────────────────────────────────
@@ -2624,7 +2735,10 @@ impl McpServer {
         let archaeologist = crate::temporal::archaeology::CodeArchaeologist::new(graph, history);
         let result = archaeologist.investigate(unit_id);
 
-        JsonRpcResponse::success(id, json!({ "content": [{ "type": "text", "text": serde_json::to_string_pretty(&json!({ "unit_id": unit_id, "result": result })).unwrap_or_default() }] }))
+        JsonRpcResponse::success(
+            id,
+            json!({ "content": [{ "type": "text", "text": serde_json::to_string_pretty(&json!({ "unit_id": unit_id, "result": result })).unwrap_or_default() }] }),
+        )
     }
 
     fn tool_archaeology_why(&self, id: Value, args: &Value) -> JsonRpcResponse {
@@ -2637,9 +2751,14 @@ impl McpServer {
         let history = crate::temporal::history::ChangeHistory::new();
         let archaeologist = crate::temporal::archaeology::CodeArchaeologist::new(graph, history);
         let result = archaeologist.investigate(unit_id);
-        let explanation = result.map(|r| r.why_explanation).unwrap_or_else(|| "Unit not found".to_string());
+        let explanation = result
+            .map(|r| r.why_explanation)
+            .unwrap_or_else(|| "Unit not found".to_string());
 
-        JsonRpcResponse::success(id, json!({ "content": [{ "type": "text", "text": serde_json::to_string_pretty(&json!({ "unit_id": unit_id, "explanation": explanation })).unwrap_or_default() }] }))
+        JsonRpcResponse::success(
+            id,
+            json!({ "content": [{ "type": "text", "text": serde_json::to_string_pretty(&json!({ "unit_id": unit_id, "explanation": explanation })).unwrap_or_default() }] }),
+        )
     }
 
     fn tool_archaeology_when(&self, id: Value, args: &Value) -> JsonRpcResponse {
@@ -2653,7 +2772,10 @@ impl McpServer {
         let archaeologist = crate::temporal::archaeology::CodeArchaeologist::new(graph, history);
         let timeline = archaeologist.when_changed(unit_id);
 
-        JsonRpcResponse::success(id, json!({ "content": [{ "type": "text", "text": serde_json::to_string_pretty(&json!({ "unit_id": unit_id, "timeline": timeline })).unwrap_or_default() }] }))
+        JsonRpcResponse::success(
+            id,
+            json!({ "content": [{ "type": "text", "text": serde_json::to_string_pretty(&json!({ "unit_id": unit_id, "timeline": timeline })).unwrap_or_default() }] }),
+        )
     }
 
     // ── 12. Pattern Extraction ──────────────────────────────────────────
@@ -2667,7 +2789,10 @@ impl McpServer {
         let extractor = crate::semantic::pattern_extract::PatternExtractor::new(graph);
         let patterns = extractor.extract_patterns();
 
-        JsonRpcResponse::success(id, json!({ "content": [{ "type": "text", "text": serde_json::to_string_pretty(&patterns).unwrap_or_default() }] }))
+        JsonRpcResponse::success(
+            id,
+            json!({ "content": [{ "type": "text", "text": serde_json::to_string_pretty(&patterns).unwrap_or_default() }] }),
+        )
     }
 
     fn tool_pattern_check(&self, id: Value, args: &Value) -> JsonRpcResponse {
@@ -2680,7 +2805,10 @@ impl McpServer {
         let extractor = crate::semantic::pattern_extract::PatternExtractor::new(graph);
         let violations = extractor.check_patterns(unit_id);
 
-        JsonRpcResponse::success(id, json!({ "content": [{ "type": "text", "text": serde_json::to_string_pretty(&json!({ "unit_id": unit_id, "violations": violations })).unwrap_or_default() }] }))
+        JsonRpcResponse::success(
+            id,
+            json!({ "content": [{ "type": "text", "text": serde_json::to_string_pretty(&json!({ "unit_id": unit_id, "violations": violations })).unwrap_or_default() }] }),
+        )
     }
 
     fn tool_pattern_suggest(&self, id: Value, args: &Value) -> JsonRpcResponse {
@@ -2693,7 +2821,10 @@ impl McpServer {
         let extractor = crate::semantic::pattern_extract::PatternExtractor::new(graph);
         let suggestions = extractor.suggest_patterns(file_path);
 
-        JsonRpcResponse::success(id, json!({ "content": [{ "type": "text", "text": serde_json::to_string_pretty(&json!({ "file_path": file_path, "suggestions": suggestions })).unwrap_or_default() }] }))
+        JsonRpcResponse::success(
+            id,
+            json!({ "content": [{ "type": "text", "text": serde_json::to_string_pretty(&json!({ "file_path": file_path, "suggestions": suggestions })).unwrap_or_default() }] }),
+        )
     }
 
     // -- 13. Code Resurrection --------------------------------------------------
@@ -2704,19 +2835,30 @@ impl McpServer {
             Err(e) => return JsonRpcResponse::error(id, e),
         };
         let query = args.get("query").and_then(|v| v.as_str()).unwrap_or("");
-        let max_results = args.get("max_results").and_then(|v| v.as_u64()).unwrap_or(10) as usize;
+        let max_results = args
+            .get("max_results")
+            .and_then(|v| v.as_u64())
+            .unwrap_or(10) as usize;
         let query_lower = query.to_lowercase();
         let mut traces: Vec<Value> = Vec::new();
         for unit in graph.units() {
             let name_lower = unit.name.to_lowercase();
             let doc_lower = unit.doc_summary.as_deref().unwrap_or("").to_lowercase();
             if name_lower.contains(&query_lower) || doc_lower.contains(&query_lower) {
-                let is_deprecated = doc_lower.contains("deprecated") || doc_lower.contains("removed") || name_lower.contains("deprecated") || name_lower.starts_with("old_");
+                let is_deprecated = doc_lower.contains("deprecated")
+                    || doc_lower.contains("removed")
+                    || name_lower.contains("deprecated")
+                    || name_lower.starts_with("old_");
                 traces.push(json!({"unit_id": unit.id, "name": unit.name, "type": unit.unit_type.label(), "file": unit.file_path.display().to_string(), "is_deprecated": is_deprecated, "doc": unit.doc_summary, "trace_type": if is_deprecated { "deprecated" } else { "reference" }}));
-                if traces.len() >= max_results { break; }
+                if traces.len() >= max_results {
+                    break;
+                }
             }
         }
-        JsonRpcResponse::success(id, json!({"content": [{"type": "text", "text": serde_json::to_string_pretty(&json!({"query": query, "traces_found": traces.len(), "traces": traces})).unwrap_or_default()}]}))
+        JsonRpcResponse::success(
+            id,
+            json!({"content": [{"type": "text", "text": serde_json::to_string_pretty(&json!({"query": query, "traces_found": traces.len(), "traces": traces})).unwrap_or_default()}]}),
+        )
     }
 
     fn tool_resurrect_attempt(&self, id: Value, args: &Value) -> JsonRpcResponse {
@@ -2731,15 +2873,30 @@ impl McpServer {
             let name_lower = unit.name.to_lowercase();
             let doc_lower = unit.doc_summary.as_deref().unwrap_or("").to_lowercase();
             let sig_lower = unit.signature.as_deref().unwrap_or("").to_lowercase();
-            if (unit.unit_type == CodeUnitType::Test && (name_lower.contains(&query_lower) || doc_lower.contains(&query_lower)))
+            if (unit.unit_type == CodeUnitType::Test
+                && (name_lower.contains(&query_lower) || doc_lower.contains(&query_lower)))
                 || (unit.unit_type == CodeUnitType::Doc && doc_lower.contains(&query_lower))
-                || sig_lower.contains(&query_lower) {
+                || sig_lower.contains(&query_lower)
+            {
                 evidence.push(json!({"source": unit.unit_type.label(), "unit_id": unit.id, "name": unit.name, "signature": unit.signature, "doc": unit.doc_summary, "file": unit.file_path.display().to_string()}));
             }
         }
-        let status = if evidence.is_empty() { "insufficient_evidence" } else { "partial_reconstruction" };
-        let confidence = if evidence.len() > 5 { "high" } else if evidence.len() > 2 { "medium" } else { "low" };
-        JsonRpcResponse::success(id, json!({"content": [{"type": "text", "text": serde_json::to_string_pretty(&json!({"query": query, "status": status, "confidence": confidence, "evidence_count": evidence.len(), "evidence": evidence})).unwrap_or_default()}]}))
+        let status = if evidence.is_empty() {
+            "insufficient_evidence"
+        } else {
+            "partial_reconstruction"
+        };
+        let confidence = if evidence.len() > 5 {
+            "high"
+        } else if evidence.len() > 2 {
+            "medium"
+        } else {
+            "low"
+        };
+        JsonRpcResponse::success(
+            id,
+            json!({"content": [{"type": "text", "text": serde_json::to_string_pretty(&json!({"query": query, "status": status, "confidence": confidence, "evidence_count": evidence.len(), "evidence": evidence})).unwrap_or_default()}]}),
+        )
     }
 
     fn tool_resurrect_verify(&self, id: Value, args: &Value) -> JsonRpcResponse {
@@ -2747,17 +2904,41 @@ impl McpServer {
             Ok(g) => g,
             Err(e) => return JsonRpcResponse::error(id, e),
         };
-        let original_name = args.get("original_name").and_then(|v| v.as_str()).unwrap_or("");
-        let reconstructed = args.get("reconstructed").and_then(|v| v.as_str()).unwrap_or("");
+        let original_name = args
+            .get("original_name")
+            .and_then(|v| v.as_str())
+            .unwrap_or("");
+        let reconstructed = args
+            .get("reconstructed")
+            .and_then(|v| v.as_str())
+            .unwrap_or("");
         let name_lower = original_name.to_lowercase();
         let mut refs = 0u64;
         let mut has_tests = false;
         for unit in graph.units() {
-            if unit.name.to_lowercase().contains(&name_lower) { refs += 1; if unit.unit_type == CodeUnitType::Test { has_tests = true; } }
+            if unit.name.to_lowercase().contains(&name_lower) {
+                refs += 1;
+                if unit.unit_type == CodeUnitType::Test {
+                    has_tests = true;
+                }
+            }
         }
-        let status = if refs > 0 { "plausible" } else { "unverifiable" };
-        let confidence = if has_tests && refs > 2 { "high" } else if refs > 0 { "medium" } else { "low" };
-        JsonRpcResponse::success(id, json!({"content": [{"type": "text", "text": serde_json::to_string_pretty(&json!({"original_name": original_name, "reconstructed_length": reconstructed.len(), "references": refs, "has_tests": has_tests, "status": status, "confidence": confidence})).unwrap_or_default()}]}))
+        let status = if refs > 0 {
+            "plausible"
+        } else {
+            "unverifiable"
+        };
+        let confidence = if has_tests && refs > 2 {
+            "high"
+        } else if refs > 0 {
+            "medium"
+        } else {
+            "low"
+        };
+        JsonRpcResponse::success(
+            id,
+            json!({"content": [{"type": "text", "text": serde_json::to_string_pretty(&json!({"original_name": original_name, "reconstructed_length": reconstructed.len(), "references": refs, "has_tests": has_tests, "status": status, "confidence": confidence})).unwrap_or_default()}]}),
+        )
     }
 
     fn tool_resurrect_history(&self, id: Value, args: &Value) -> JsonRpcResponse {
@@ -2768,8 +2949,14 @@ impl McpServer {
         let mut versions: Vec<Value> = Vec::new();
         for edge in graph.edges() {
             if edge.edge_type == EdgeType::VersionOf {
-                let src = graph.get_unit(edge.source_id).map(|u| u.name.as_str()).unwrap_or("?");
-                let tgt = graph.get_unit(edge.target_id).map(|u| u.name.as_str()).unwrap_or("?");
+                let src = graph
+                    .get_unit(edge.source_id)
+                    .map(|u| u.name.as_str())
+                    .unwrap_or("?");
+                let tgt = graph
+                    .get_unit(edge.target_id)
+                    .map(|u| u.name.as_str())
+                    .unwrap_or("?");
                 versions.push(json!({"newer_id": edge.source_id, "newer": src, "older_id": edge.target_id, "older": tgt}));
             }
         }
@@ -2777,12 +2964,16 @@ impl McpServer {
         for unit in graph.units() {
             let doc = unit.doc_summary.as_deref().unwrap_or("").to_lowercase();
             if doc.contains("deprecated") || unit.name.to_lowercase().contains("deprecated") {
-                deprecated.push(json!({"unit_id": unit.id, "name": unit.name, "type": unit.unit_type.label()}));
+                deprecated.push(
+                    json!({"unit_id": unit.id, "name": unit.name, "type": unit.unit_type.label()}),
+                );
             }
         }
-        JsonRpcResponse::success(id, json!({"content": [{"type": "text", "text": serde_json::to_string_pretty(&json!({"versions": versions, "deprecated": deprecated})).unwrap_or_default()}]}))
+        JsonRpcResponse::success(
+            id,
+            json!({"content": [{"type": "text", "text": serde_json::to_string_pretty(&json!({"versions": versions, "deprecated": deprecated})).unwrap_or_default()}]}),
+        )
     }
-
 
     // -- 14. Code Genetics ------------------------------------------------------
 
@@ -2794,16 +2985,38 @@ impl McpServer {
         let unit_id = args.get("unit_id").and_then(|v| v.as_u64()).unwrap_or(0);
         let unit = match graph.get_unit(unit_id) {
             Some(u) => u,
-            None => return JsonRpcResponse::error(id, JsonRpcError::invalid_params(format!("Unit {} not found", unit_id))),
+            None => {
+                return JsonRpcResponse::error(
+                    id,
+                    JsonRpcError::invalid_params(format!("Unit {} not found", unit_id)),
+                )
+            }
         };
         let outgoing = graph.edges_from(unit_id);
         let incoming = graph.edges_to(unit_id);
         let mut out_types: Vec<&str> = outgoing.iter().map(|e| e.edge_type.label()).collect();
-        out_types.sort(); out_types.dedup();
+        out_types.sort();
+        out_types.dedup();
         let mut in_types: Vec<&str> = incoming.iter().map(|e| e.edge_type.label()).collect();
-        in_types.sort(); in_types.dedup();
-        let naming = if unit.name.contains('_') { "snake_case" } else if unit.name.chars().next().map(|c| c.is_uppercase()).unwrap_or(false) { "PascalCase" } else { "camelCase" };
-        JsonRpcResponse::success(id, json!({"content": [{"type": "text", "text": serde_json::to_string_pretty(&json!({"unit_id": unit_id, "name": unit.name, "type": unit.unit_type.label(), "naming": naming, "complexity": unit.complexity, "is_async": unit.is_async, "visibility": format!("{:?}", unit.visibility), "out_edge_types": out_types, "in_edge_types": in_types, "out_count": outgoing.len(), "in_count": incoming.len(), "has_tests": incoming.iter().any(|e| e.edge_type == EdgeType::Tests), "has_docs": incoming.iter().any(|e| e.edge_type == EdgeType::Documents), "stability": unit.stability_score, "signature": unit.signature})).unwrap_or_default()}]}))
+        in_types.sort();
+        in_types.dedup();
+        let naming = if unit.name.contains('_') {
+            "snake_case"
+        } else if unit
+            .name
+            .chars()
+            .next()
+            .map(|c| c.is_uppercase())
+            .unwrap_or(false)
+        {
+            "PascalCase"
+        } else {
+            "camelCase"
+        };
+        JsonRpcResponse::success(
+            id,
+            json!({"content": [{"type": "text", "text": serde_json::to_string_pretty(&json!({"unit_id": unit_id, "name": unit.name, "type": unit.unit_type.label(), "naming": naming, "complexity": unit.complexity, "is_async": unit.is_async, "visibility": format!("{:?}", unit.visibility), "out_edge_types": out_types, "in_edge_types": in_types, "out_count": outgoing.len(), "in_count": incoming.len(), "has_tests": incoming.iter().any(|e| e.edge_type == EdgeType::Tests), "has_docs": incoming.iter().any(|e| e.edge_type == EdgeType::Documents), "stability": unit.stability_score, "signature": unit.signature})).unwrap_or_default()}]}),
+        )
     }
 
     fn tool_genetics_lineage(&self, id: Value, args: &Value) -> JsonRpcResponse {
@@ -2817,17 +3030,28 @@ impl McpServer {
         let mut visited = std::collections::HashSet::new();
         let mut frontier = vec![(unit_id, 0usize)];
         while let Some((current, depth)) = frontier.pop() {
-            if depth > max_depth || !visited.insert(current) { continue; }
+            if depth > max_depth || !visited.insert(current) {
+                continue;
+            }
             if let Some(unit) = graph.get_unit(current) {
                 lineage.push(json!({"unit_id": current, "name": unit.name, "type": unit.unit_type.label(), "depth": depth, "file": unit.file_path.display().to_string()}));
                 for edge in graph.edges_to(current) {
-                    if matches!(edge.edge_type, EdgeType::Contains | EdgeType::Inherits | EdgeType::VersionOf | EdgeType::Implements) {
+                    if matches!(
+                        edge.edge_type,
+                        EdgeType::Contains
+                            | EdgeType::Inherits
+                            | EdgeType::VersionOf
+                            | EdgeType::Implements
+                    ) {
                         frontier.push((edge.source_id, depth + 1));
                     }
                 }
             }
         }
-        JsonRpcResponse::success(id, json!({"content": [{"type": "text", "text": serde_json::to_string_pretty(&json!({"unit_id": unit_id, "lineage_depth": lineage.len(), "lineage": lineage})).unwrap_or_default()}]}))
+        JsonRpcResponse::success(
+            id,
+            json!({"content": [{"type": "text", "text": serde_json::to_string_pretty(&json!({"unit_id": unit_id, "lineage_depth": lineage.len(), "lineage": lineage})).unwrap_or_default()}]}),
+        )
     }
 
     fn tool_genetics_mutations(&self, id: Value, args: &Value) -> JsonRpcResponse {
@@ -2838,17 +3062,40 @@ impl McpServer {
         let unit_id = args.get("unit_id").and_then(|v| v.as_u64()).unwrap_or(0);
         let unit = match graph.get_unit(unit_id) {
             Some(u) => u,
-            None => return JsonRpcResponse::error(id, JsonRpcError::invalid_params(format!("Unit {} not found", unit_id))),
+            None => {
+                return JsonRpcResponse::error(
+                    id,
+                    JsonRpcError::invalid_params(format!("Unit {} not found", unit_id)),
+                )
+            }
         };
         let mut mutations: Vec<Value> = Vec::new();
-        if unit.complexity > 20 { mutations.push(json!({"type": "complexity_mutation", "description": format!("Complexity {} is unusually high", unit.complexity), "severity": "medium"})); }
-        if unit.stability_score < 0.3 && unit.change_count > 5 { mutations.push(json!({"type": "stability_mutation", "description": format!("Low stability ({:.2}) with {} changes", unit.stability_score, unit.change_count), "severity": "high"})); }
-        let breaks = graph.edges_from(unit_id).into_iter().filter(|e| e.edge_type == EdgeType::BreaksWith).count();
-        if breaks > 0 { mutations.push(json!({"type": "breaking_mutation", "description": format!("{} breaking relationships", breaks), "severity": "high"})); }
+        if unit.complexity > 20 {
+            mutations.push(json!({"type": "complexity_mutation", "description": format!("Complexity {} is unusually high", unit.complexity), "severity": "medium"}));
+        }
+        if unit.stability_score < 0.3 && unit.change_count > 5 {
+            mutations.push(json!({"type": "stability_mutation", "description": format!("Low stability ({:.2}) with {} changes", unit.stability_score, unit.change_count), "severity": "high"}));
+        }
+        let breaks = graph
+            .edges_from(unit_id)
+            .into_iter()
+            .filter(|e| e.edge_type == EdgeType::BreaksWith)
+            .count();
+        if breaks > 0 {
+            mutations.push(json!({"type": "breaking_mutation", "description": format!("{} breaking relationships", breaks), "severity": "high"}));
+        }
         // Check naming mutation vs siblings
-        let parents: Vec<_> = graph.edges_to(unit_id).into_iter().filter(|e| e.edge_type == EdgeType::Contains).collect();
+        let parents: Vec<_> = graph
+            .edges_to(unit_id)
+            .into_iter()
+            .filter(|e| e.edge_type == EdgeType::Contains)
+            .collect();
         for pe in &parents {
-            let sibs: Vec<_> = graph.edges_from(pe.source_id).into_iter().filter(|e| e.edge_type == EdgeType::Contains && e.target_id != unit_id).collect();
+            let sibs: Vec<_> = graph
+                .edges_from(pe.source_id)
+                .into_iter()
+                .filter(|e| e.edge_type == EdgeType::Contains && e.target_id != unit_id)
+                .collect();
             let unit_snake = unit.name.contains('_');
             for se in &sibs {
                 if let Some(sib) = graph.get_unit(se.target_id) {
@@ -2859,7 +3106,10 @@ impl McpServer {
                 }
             }
         }
-        JsonRpcResponse::success(id, json!({"content": [{"type": "text", "text": serde_json::to_string_pretty(&json!({"unit_id": unit_id, "name": unit.name, "mutations": mutations})).unwrap_or_default()}]}))
+        JsonRpcResponse::success(
+            id,
+            json!({"content": [{"type": "text", "text": serde_json::to_string_pretty(&json!({"unit_id": unit_id, "name": unit.name, "mutations": mutations})).unwrap_or_default()}]}),
+        )
     }
 
     fn tool_genetics_diseases(&self, id: Value, args: &Value) -> JsonRpcResponse {
@@ -2870,25 +3120,55 @@ impl McpServer {
         let unit_id = args.get("unit_id").and_then(|v| v.as_u64()).unwrap_or(0);
         let unit = match graph.get_unit(unit_id) {
             Some(u) => u,
-            None => return JsonRpcResponse::error(id, JsonRpcError::invalid_params(format!("Unit {} not found", unit_id))),
+            None => {
+                return JsonRpcResponse::error(
+                    id,
+                    JsonRpcError::invalid_params(format!("Unit {} not found", unit_id)),
+                )
+            }
         };
         let mut diseases: Vec<Value> = Vec::new();
         let out = graph.edges_from(unit_id);
         let inc = graph.edges_to(unit_id);
-        if out.len() > 20 { diseases.push(json!({"disease": "god_object", "severity": "high", "detail": format!("{} outgoing edges", out.len())})); }
+        if out.len() > 20 {
+            diseases.push(json!({"disease": "god_object", "severity": "high", "detail": format!("{} outgoing edges", out.len())}));
+        }
         let targets: std::collections::HashSet<u64> = out.iter().map(|e| e.target_id).collect();
         let sources: std::collections::HashSet<u64> = inc.iter().map(|e| e.source_id).collect();
         let circular: Vec<u64> = targets.intersection(&sources).copied().collect();
-        if !circular.is_empty() { diseases.push(json!({"disease": "circular_dependency", "severity": "high", "with": circular})); }
-        let calls_out = out.iter().filter(|e| e.edge_type == EdgeType::Calls).count();
-        let calls_in = inc.iter().filter(|e| e.edge_type == EdgeType::Calls).count();
-        if calls_out > 10 && calls_out > calls_in * 3 { diseases.push(json!({"disease": "feature_envy", "severity": "medium", "calls_out": calls_out, "calls_in": calls_in})); }
-        if !inc.iter().any(|e| e.edge_type == EdgeType::Tests) && unit.unit_type == CodeUnitType::Function { diseases.push(json!({"disease": "untested", "severity": "medium"})); }
-        let non_contains = inc.iter().filter(|e| e.edge_type != EdgeType::Contains).count();
-        if non_contains == 0 && !inc.is_empty() { diseases.push(json!({"disease": "orphan_code", "severity": "medium"})); }
-        JsonRpcResponse::success(id, json!({"content": [{"type": "text", "text": serde_json::to_string_pretty(&json!({"unit_id": unit_id, "name": unit.name, "diseases": diseases})).unwrap_or_default()}]}))
+        if !circular.is_empty() {
+            diseases.push(
+                json!({"disease": "circular_dependency", "severity": "high", "with": circular}),
+            );
+        }
+        let calls_out = out
+            .iter()
+            .filter(|e| e.edge_type == EdgeType::Calls)
+            .count();
+        let calls_in = inc
+            .iter()
+            .filter(|e| e.edge_type == EdgeType::Calls)
+            .count();
+        if calls_out > 10 && calls_out > calls_in * 3 {
+            diseases.push(json!({"disease": "feature_envy", "severity": "medium", "calls_out": calls_out, "calls_in": calls_in}));
+        }
+        if !inc.iter().any(|e| e.edge_type == EdgeType::Tests)
+            && unit.unit_type == CodeUnitType::Function
+        {
+            diseases.push(json!({"disease": "untested", "severity": "medium"}));
+        }
+        let non_contains = inc
+            .iter()
+            .filter(|e| e.edge_type != EdgeType::Contains)
+            .count();
+        if non_contains == 0 && !inc.is_empty() {
+            diseases.push(json!({"disease": "orphan_code", "severity": "medium"}));
+        }
+        JsonRpcResponse::success(
+            id,
+            json!({"content": [{"type": "text", "text": serde_json::to_string_pretty(&json!({"unit_id": unit_id, "name": unit.name, "diseases": diseases})).unwrap_or_default()}]}),
+        )
     }
-
 
     // -- 15. Code Telepathy -----------------------------------------------------
 
@@ -2902,7 +3182,10 @@ impl McpServer {
             Err(e) => return JsonRpcResponse::error(id, JsonRpcError::invalid_params(e)),
         };
         let connections: Vec<Value> = workspace.contexts.iter().map(|c| json!({"context_id": c.id, "role": c.role.label(), "path": c.path, "units": c.graph.units().len()})).collect();
-        JsonRpcResponse::success(id, json!({"content": [{"type": "text", "text": serde_json::to_string_pretty(&json!({"workspace": ws_id, "status": "connected", "connections": connections})).unwrap_or_default()}]}))
+        JsonRpcResponse::success(
+            id,
+            json!({"content": [{"type": "text", "text": serde_json::to_string_pretty(&json!({"workspace": ws_id, "status": "connected", "connections": connections})).unwrap_or_default()}]}),
+        )
     }
 
     fn tool_telepathy_broadcast(&self, id: Value, args: &Value) -> JsonRpcResponse {
@@ -2911,13 +3194,19 @@ impl McpServer {
             Err(e) => return JsonRpcResponse::error(id, e),
         };
         let insight = args.get("insight").and_then(|v| v.as_str()).unwrap_or("");
-        let source_graph = args.get("source_graph").and_then(|v| v.as_str()).unwrap_or("");
+        let source_graph = args
+            .get("source_graph")
+            .and_then(|v| v.as_str())
+            .unwrap_or("");
         let results = match self.workspace_manager.query_all(&ws_id, insight) {
             Ok(r) => r,
             Err(e) => return JsonRpcResponse::error(id, JsonRpcError::invalid_params(e)),
         };
         let receivers: Vec<Value> = results.iter().map(|r| json!({"context_id": r.context_id, "role": r.context_role.label(), "matches": r.matches.len()})).collect();
-        JsonRpcResponse::success(id, json!({"content": [{"type": "text", "text": serde_json::to_string_pretty(&json!({"workspace": ws_id, "insight": insight, "source": source_graph, "receivers": receivers})).unwrap_or_default()}]}))
+        JsonRpcResponse::success(
+            id,
+            json!({"content": [{"type": "text", "text": serde_json::to_string_pretty(&json!({"workspace": ws_id, "insight": insight, "source": source_graph, "receivers": receivers})).unwrap_or_default()}]}),
+        )
     }
 
     fn tool_telepathy_listen(&self, id: Value, args: &Value) -> JsonRpcResponse {
@@ -2931,13 +3220,37 @@ impl McpServer {
         };
         let mut insights: Vec<Value> = Vec::new();
         for ctx in &workspace.contexts {
-            let high_cx: Vec<&str> = ctx.graph.units().iter().filter(|u| u.complexity > 15).take(5).map(|u| u.name.as_str()).collect();
-            if !high_cx.is_empty() { insights.push(json!({"context": ctx.id, "role": ctx.role.label(), "type": "high_complexity", "units": high_cx})); }
-            let tests = ctx.graph.units().iter().filter(|u| u.unit_type == CodeUnitType::Test).count();
-            let funcs = ctx.graph.units().iter().filter(|u| u.unit_type == CodeUnitType::Function).count();
-            if funcs > 0 { insights.push(json!({"context": ctx.id, "role": ctx.role.label(), "type": "test_ratio", "tests": tests, "functions": funcs, "ratio": tests as f64 / funcs as f64})); }
+            let high_cx: Vec<&str> = ctx
+                .graph
+                .units()
+                .iter()
+                .filter(|u| u.complexity > 15)
+                .take(5)
+                .map(|u| u.name.as_str())
+                .collect();
+            if !high_cx.is_empty() {
+                insights.push(json!({"context": ctx.id, "role": ctx.role.label(), "type": "high_complexity", "units": high_cx}));
+            }
+            let tests = ctx
+                .graph
+                .units()
+                .iter()
+                .filter(|u| u.unit_type == CodeUnitType::Test)
+                .count();
+            let funcs = ctx
+                .graph
+                .units()
+                .iter()
+                .filter(|u| u.unit_type == CodeUnitType::Function)
+                .count();
+            if funcs > 0 {
+                insights.push(json!({"context": ctx.id, "role": ctx.role.label(), "type": "test_ratio", "tests": tests, "functions": funcs, "ratio": tests as f64 / funcs as f64}));
+            }
         }
-        JsonRpcResponse::success(id, json!({"content": [{"type": "text", "text": serde_json::to_string_pretty(&json!({"workspace": ws_id, "insights": insights})).unwrap_or_default()}]}))
+        JsonRpcResponse::success(
+            id,
+            json!({"content": [{"type": "text", "text": serde_json::to_string_pretty(&json!({"workspace": ws_id, "insights": insights})).unwrap_or_default()}]}),
+        )
     }
 
     fn tool_telepathy_consensus(&self, id: Value, args: &Value) -> JsonRpcResponse {
@@ -2952,11 +3265,21 @@ impl McpServer {
         };
         let total = results.len();
         let with_matches = results.iter().filter(|r| !r.matches.is_empty()).count();
-        let level = if with_matches == total && total > 0 { "universal" } else if with_matches as f64 / total.max(1) as f64 > 0.5 { "majority" } else if with_matches > 0 { "minority" } else { "none" };
+        let level = if with_matches == total && total > 0 {
+            "universal"
+        } else if with_matches as f64 / total.max(1) as f64 > 0.5 {
+            "majority"
+        } else if with_matches > 0 {
+            "minority"
+        } else {
+            "none"
+        };
         let details: Vec<Value> = results.iter().map(|r| json!({"context_id": r.context_id, "role": r.context_role.label(), "has_concept": !r.matches.is_empty(), "count": r.matches.len()})).collect();
-        JsonRpcResponse::success(id, json!({"content": [{"type": "text", "text": serde_json::to_string_pretty(&json!({"concept": concept, "consensus": level, "total": total, "with_concept": with_matches, "details": details})).unwrap_or_default()}]}))
+        JsonRpcResponse::success(
+            id,
+            json!({"content": [{"type": "text", "text": serde_json::to_string_pretty(&json!({"concept": concept, "consensus": level, "total": total, "with_concept": with_matches, "details": details})).unwrap_or_default()}]}),
+        )
     }
-
 
     // -- 16. Code Soul ----------------------------------------------------------
 
@@ -2968,23 +3291,58 @@ impl McpServer {
         let unit_id = args.get("unit_id").and_then(|v| v.as_u64()).unwrap_or(0);
         let unit = match graph.get_unit(unit_id) {
             Some(u) => u,
-            None => return JsonRpcResponse::error(id, JsonRpcError::invalid_params(format!("Unit {} not found", unit_id))),
+            None => {
+                return JsonRpcResponse::error(
+                    id,
+                    JsonRpcError::invalid_params(format!("Unit {} not found", unit_id)),
+                )
+            }
         };
         let out = graph.edges_from(unit_id);
         let inc = graph.edges_to(unit_id);
-        let purpose = format!("{} {} that {}", format!("{:?}", unit.visibility).to_lowercase(), unit.unit_type.label(),
-            if out.iter().any(|e| e.edge_type == EdgeType::Calls) { "orchestrates calls" }
-            else if unit.unit_type == CodeUnitType::Test { "verifies behavior" }
-            else if unit.unit_type == CodeUnitType::Doc { "documents knowledge" }
-            else { "provides functionality" });
+        let purpose = format!(
+            "{} {} that {}",
+            format!("{:?}", unit.visibility).to_lowercase(),
+            unit.unit_type.label(),
+            if out.iter().any(|e| e.edge_type == EdgeType::Calls) {
+                "orchestrates calls"
+            } else if unit.unit_type == CodeUnitType::Test {
+                "verifies behavior"
+            } else if unit.unit_type == CodeUnitType::Doc {
+                "documents knowledge"
+            } else {
+                "provides functionality"
+            }
+        );
         let mut values: Vec<&str> = Vec::new();
-        if inc.iter().any(|e| e.edge_type == EdgeType::Tests) { values.push("correctness"); }
-        if inc.iter().any(|e| e.edge_type == EdgeType::Documents) { values.push("documentation"); }
-        if unit.stability_score > 0.8 { values.push("stability"); }
-        if unit.complexity < 5 { values.push("simplicity"); }
-        if unit.is_async { values.push("concurrency"); }
-        let deps: Vec<String> = out.iter().filter_map(|e| graph.get_unit(e.target_id).map(|u| format!("{}:{}", e.edge_type.label(), u.name.clone()))).take(10).collect();
-        JsonRpcResponse::success(id, json!({"content": [{"type": "text", "text": serde_json::to_string_pretty(&json!({"unit_id": unit_id, "name": unit.name, "soul_id": format!("soul-{}-{}", unit_id, unit.name), "purpose": purpose, "values": values, "dependencies": deps, "signature": unit.signature, "complexity": unit.complexity, "stability": unit.stability_score, "language": unit.language.name()})).unwrap_or_default()}]}))
+        if inc.iter().any(|e| e.edge_type == EdgeType::Tests) {
+            values.push("correctness");
+        }
+        if inc.iter().any(|e| e.edge_type == EdgeType::Documents) {
+            values.push("documentation");
+        }
+        if unit.stability_score > 0.8 {
+            values.push("stability");
+        }
+        if unit.complexity < 5 {
+            values.push("simplicity");
+        }
+        if unit.is_async {
+            values.push("concurrency");
+        }
+        let deps: Vec<String> = out
+            .iter()
+            .filter_map(|e| {
+                graph
+                    .get_unit(e.target_id)
+                    .map(|u| format!("{}:{}", e.edge_type.label(), u.name.clone()))
+            })
+            .take(10)
+            .collect();
+        JsonRpcResponse::success(
+            id,
+            json!({"content": [{"type": "text", "text": serde_json::to_string_pretty(&json!({"unit_id": unit_id, "name": unit.name, "soul_id": format!("soul-{}-{}", unit_id, unit.name), "purpose": purpose, "values": values, "dependencies": deps, "signature": unit.signature, "complexity": unit.complexity, "stability": unit.stability_score, "language": unit.language.name()})).unwrap_or_default()}]}),
+        )
     }
 
     fn tool_soul_compare(&self, id: Value, args: &Value) -> JsonRpcResponse {
@@ -2994,20 +3352,59 @@ impl McpServer {
         };
         let id_a = args.get("unit_id_a").and_then(|v| v.as_u64()).unwrap_or(0);
         let id_b = args.get("unit_id_b").and_then(|v| v.as_u64()).unwrap_or(0);
-        let ua = match graph.get_unit(id_a) { Some(u) => u, None => return JsonRpcResponse::error(id, JsonRpcError::invalid_params(format!("Unit {} not found", id_a))) };
-        let ub = match graph.get_unit(id_b) { Some(u) => u, None => return JsonRpcResponse::error(id, JsonRpcError::invalid_params(format!("Unit {} not found", id_b))) };
-        let ea: std::collections::HashSet<String> = graph.edges_from(id_a).iter().map(|e| e.edge_type.label().to_string()).collect();
-        let eb: std::collections::HashSet<String> = graph.edges_from(id_b).iter().map(|e| e.edge_type.label().to_string()).collect();
+        let ua = match graph.get_unit(id_a) {
+            Some(u) => u,
+            None => {
+                return JsonRpcResponse::error(
+                    id,
+                    JsonRpcError::invalid_params(format!("Unit {} not found", id_a)),
+                )
+            }
+        };
+        let ub = match graph.get_unit(id_b) {
+            Some(u) => u,
+            None => {
+                return JsonRpcResponse::error(
+                    id,
+                    JsonRpcError::invalid_params(format!("Unit {} not found", id_b)),
+                )
+            }
+        };
+        let ea: std::collections::HashSet<String> = graph
+            .edges_from(id_a)
+            .iter()
+            .map(|e| e.edge_type.label().to_string())
+            .collect();
+        let eb: std::collections::HashSet<String> = graph
+            .edges_from(id_b)
+            .iter()
+            .map(|e| e.edge_type.label().to_string())
+            .collect();
         let shared: Vec<&String> = ea.intersection(&eb).collect();
         let type_match = ua.unit_type == ub.unit_type;
         let cdiff = (ua.complexity as i64 - ub.complexity as i64).unsigned_abs();
         let mut sim = 0.0f64;
-        if type_match { sim += 0.3; }
-        if ua.is_async == ub.is_async { sim += 0.1; }
-        if cdiff < 5 { sim += 0.2; }
+        if type_match {
+            sim += 0.3;
+        }
+        if ua.is_async == ub.is_async {
+            sim += 0.1;
+        }
+        if cdiff < 5 {
+            sim += 0.2;
+        }
         sim += 0.4 * (shared.len() as f64 / ea.len().max(eb.len()).max(1) as f64);
-        let verdict = if sim > 0.8 { "same_soul" } else if sim > 0.5 { "related_souls" } else { "different_souls" };
-        JsonRpcResponse::success(id, json!({"content": [{"type": "text", "text": serde_json::to_string_pretty(&json!({"unit_a": {"id": id_a, "name": ua.name}, "unit_b": {"id": id_b, "name": ub.name}, "similarity": sim, "type_match": type_match, "complexity_diff": cdiff, "shared_edges": shared, "verdict": verdict})).unwrap_or_default()}]}))
+        let verdict = if sim > 0.8 {
+            "same_soul"
+        } else if sim > 0.5 {
+            "related_souls"
+        } else {
+            "different_souls"
+        };
+        JsonRpcResponse::success(
+            id,
+            json!({"content": [{"type": "text", "text": serde_json::to_string_pretty(&json!({"unit_a": {"id": id_a, "name": ua.name}, "unit_b": {"id": id_b, "name": ub.name}, "similarity": sim, "type_match": type_match, "complexity_diff": cdiff, "shared_edges": shared, "verdict": verdict})).unwrap_or_default()}]}),
+        )
     }
 
     fn tool_soul_preserve(&self, id: Value, args: &Value) -> JsonRpcResponse {
@@ -3016,12 +3413,32 @@ impl McpServer {
             Err(e) => return JsonRpcResponse::error(id, e),
         };
         let unit_id = args.get("unit_id").and_then(|v| v.as_u64()).unwrap_or(0);
-        let new_lang = args.get("new_language").and_then(|v| v.as_str()).unwrap_or("unknown");
-        let unit = match graph.get_unit(unit_id) { Some(u) => u, None => return JsonRpcResponse::error(id, JsonRpcError::invalid_params(format!("Unit {} not found", unit_id))) };
+        let new_lang = args
+            .get("new_language")
+            .and_then(|v| v.as_str())
+            .unwrap_or("unknown");
+        let unit = match graph.get_unit(unit_id) {
+            Some(u) => u,
+            None => {
+                return JsonRpcResponse::error(
+                    id,
+                    JsonRpcError::invalid_params(format!("Unit {} not found", unit_id)),
+                )
+            }
+        };
         let out = graph.edges_from(unit_id);
         let inc = graph.edges_to(unit_id);
-        let risk = if out.len() > 10 { "high" } else if out.len() > 5 { "medium" } else { "low" };
-        JsonRpcResponse::success(id, json!({"content": [{"type": "text", "text": serde_json::to_string_pretty(&json!({"unit_id": unit_id, "name": unit.name, "original_language": unit.language.name(), "target_language": new_lang, "soul_id": format!("soul-{}-{}", unit_id, unit.name), "purpose": unit.doc_summary, "signature": unit.signature, "deps": out.len(), "dependents": inc.len(), "is_async": unit.is_async, "tests": inc.iter().filter(|e| e.edge_type == EdgeType::Tests).count(), "risk": risk})).unwrap_or_default()}]}))
+        let risk = if out.len() > 10 {
+            "high"
+        } else if out.len() > 5 {
+            "medium"
+        } else {
+            "low"
+        };
+        JsonRpcResponse::success(
+            id,
+            json!({"content": [{"type": "text", "text": serde_json::to_string_pretty(&json!({"unit_id": unit_id, "name": unit.name, "original_language": unit.language.name(), "target_language": new_lang, "soul_id": format!("soul-{}-{}", unit_id, unit.name), "purpose": unit.doc_summary, "signature": unit.signature, "deps": out.len(), "dependents": inc.len(), "is_async": unit.is_async, "tests": inc.iter().filter(|e| e.edge_type == EdgeType::Tests).count(), "risk": risk})).unwrap_or_default()}]}),
+        )
     }
 
     fn tool_soul_reincarnate(&self, id: Value, args: &Value) -> JsonRpcResponse {
@@ -3030,15 +3447,30 @@ impl McpServer {
             Err(e) => return JsonRpcResponse::error(id, e),
         };
         let soul_id = args.get("soul_id").and_then(|v| v.as_str()).unwrap_or("");
-        let target_ctx = args.get("target_context").and_then(|v| v.as_str()).unwrap_or("");
-        let uid: u64 = soul_id.strip_prefix("soul-").and_then(|s| s.split('-').next()).and_then(|s| s.parse().ok()).unwrap_or(0);
+        let target_ctx = args
+            .get("target_context")
+            .and_then(|v| v.as_str())
+            .unwrap_or("");
+        let uid: u64 = soul_id
+            .strip_prefix("soul-")
+            .and_then(|s| s.split('-').next())
+            .and_then(|s| s.parse().ok())
+            .unwrap_or(0);
         let guide = if let Some(unit) = graph.get_unit(uid) {
-            let deps: Vec<String> = graph.edges_from(uid).iter().filter_map(|e| graph.get_unit(e.target_id).map(|u| u.name.clone())).take(10).collect();
+            let deps: Vec<String> = graph
+                .edges_from(uid)
+                .iter()
+                .filter_map(|e| graph.get_unit(e.target_id).map(|u| u.name.clone()))
+                .take(10)
+                .collect();
             json!({"soul_id": soul_id, "target": target_ctx, "status": "guidance_ready", "name": unit.name, "type": unit.unit_type.label(), "signature": unit.signature, "purpose": unit.doc_summary, "deps": deps})
         } else {
             json!({"soul_id": soul_id, "target": target_ctx, "status": "soul_not_found"})
         };
-        JsonRpcResponse::success(id, json!({"content": [{"type": "text", "text": serde_json::to_string_pretty(&guide).unwrap_or_default()}]}))
+        JsonRpcResponse::success(
+            id,
+            json!({"content": [{"type": "text", "text": serde_json::to_string_pretty(&guide).unwrap_or_default()}]}),
+        )
     }
 
     fn tool_soul_karma(&self, id: Value, args: &Value) -> JsonRpcResponse {
@@ -3047,90 +3479,221 @@ impl McpServer {
             Err(e) => return JsonRpcResponse::error(id, e),
         };
         let unit_id = args.get("unit_id").and_then(|v| v.as_u64()).unwrap_or(0);
-        let unit = match graph.get_unit(unit_id) { Some(u) => u, None => return JsonRpcResponse::error(id, JsonRpcError::invalid_params(format!("Unit {} not found", unit_id))) };
+        let unit = match graph.get_unit(unit_id) {
+            Some(u) => u,
+            None => {
+                return JsonRpcResponse::error(
+                    id,
+                    JsonRpcError::invalid_params(format!("Unit {} not found", unit_id)),
+                )
+            }
+        };
         let inc = graph.edges_to(unit_id);
         let out = graph.edges_from(unit_id);
-        let mut pos = 0i64; let mut neg = 0i64;
+        let mut pos = 0i64;
+        let mut neg = 0i64;
         let mut details: Vec<Value> = Vec::new();
-        let tc = inc.iter().filter(|e| e.edge_type == EdgeType::Tests).count();
-        if tc > 0 { pos += tc as i64 * 10; details.push(json!({"k": "positive", "r": format!("{} tests", tc), "p": tc as i64 * 10})); }
-        let dc = inc.iter().filter(|e| e.edge_type == EdgeType::Documents).count();
-        if dc > 0 { pos += dc as i64 * 5; details.push(json!({"k": "positive", "r": format!("{} docs", dc), "p": dc as i64 * 5})); }
-        if unit.stability_score > 0.8 { pos += 15; details.push(json!({"k": "positive", "r": "high stability", "p": 15})); }
-        if unit.complexity < 10 { pos += 10; details.push(json!({"k": "positive", "r": "low complexity", "p": 10})); }
-        let br = out.iter().filter(|e| e.edge_type == EdgeType::BreaksWith).count();
-        if br > 0 { neg += br as i64 * 20; details.push(json!({"k": "negative", "r": format!("{} breaks", br), "p": -(br as i64 * 20)})); }
-        if unit.complexity > 20 { neg += 15; details.push(json!({"k": "negative", "r": "very high complexity", "p": -15})); }
-        if tc == 0 && unit.unit_type == CodeUnitType::Function { neg += 10; details.push(json!({"k": "negative", "r": "no tests", "p": -10})); }
-        if unit.stability_score < 0.3 { neg += 10; details.push(json!({"k": "negative", "r": "low stability", "p": -10})); }
+        let tc = inc
+            .iter()
+            .filter(|e| e.edge_type == EdgeType::Tests)
+            .count();
+        if tc > 0 {
+            pos += tc as i64 * 10;
+            details
+                .push(json!({"k": "positive", "r": format!("{} tests", tc), "p": tc as i64 * 10}));
+        }
+        let dc = inc
+            .iter()
+            .filter(|e| e.edge_type == EdgeType::Documents)
+            .count();
+        if dc > 0 {
+            pos += dc as i64 * 5;
+            details.push(json!({"k": "positive", "r": format!("{} docs", dc), "p": dc as i64 * 5}));
+        }
+        if unit.stability_score > 0.8 {
+            pos += 15;
+            details.push(json!({"k": "positive", "r": "high stability", "p": 15}));
+        }
+        if unit.complexity < 10 {
+            pos += 10;
+            details.push(json!({"k": "positive", "r": "low complexity", "p": 10}));
+        }
+        let br = out
+            .iter()
+            .filter(|e| e.edge_type == EdgeType::BreaksWith)
+            .count();
+        if br > 0 {
+            neg += br as i64 * 20;
+            details.push(
+                json!({"k": "negative", "r": format!("{} breaks", br), "p": -(br as i64 * 20)}),
+            );
+        }
+        if unit.complexity > 20 {
+            neg += 15;
+            details.push(json!({"k": "negative", "r": "very high complexity", "p": -15}));
+        }
+        if tc == 0 && unit.unit_type == CodeUnitType::Function {
+            neg += 10;
+            details.push(json!({"k": "negative", "r": "no tests", "p": -10}));
+        }
+        if unit.stability_score < 0.3 {
+            neg += 10;
+            details.push(json!({"k": "negative", "r": "low stability", "p": -10}));
+        }
         let total = pos - neg;
-        let level = if total > 30 { "enlightened" } else if total > 10 { "good" } else if total > -10 { "neutral" } else { "troubled" };
-        JsonRpcResponse::success(id, json!({"content": [{"type": "text", "text": serde_json::to_string_pretty(&json!({"unit_id": unit_id, "name": unit.name, "karma": total, "positive": pos, "negative": neg, "level": level, "details": details})).unwrap_or_default()}]}))
+        let level = if total > 30 {
+            "enlightened"
+        } else if total > 10 {
+            "good"
+        } else if total > -10 {
+            "neutral"
+        } else {
+            "troubled"
+        };
+        JsonRpcResponse::success(
+            id,
+            json!({"content": [{"type": "text", "text": serde_json::to_string_pretty(&json!({"unit_id": unit_id, "name": unit.name, "karma": total, "positive": pos, "negative": neg, "level": level, "details": details})).unwrap_or_default()}]}),
+        )
     }
-
 
     // -- 17. Code Omniscience ---------------------------------------------------
 
     fn tool_omniscience_search(&self, id: Value, args: &Value) -> JsonRpcResponse {
         let query = args.get("query").and_then(|v| v.as_str()).unwrap_or("");
-        let languages: Vec<String> = args.get("languages").and_then(|v| v.as_array()).map(|a| a.iter().filter_map(|v| v.as_str().map(String::from)).collect()).unwrap_or_default();
-        let max_results = args.get("max_results").and_then(|v| v.as_u64()).unwrap_or(10) as usize;
+        let languages: Vec<String> = args
+            .get("languages")
+            .and_then(|v| v.as_array())
+            .map(|a| {
+                a.iter()
+                    .filter_map(|v| v.as_str().map(String::from))
+                    .collect()
+            })
+            .unwrap_or_default();
+        let max_results = args
+            .get("max_results")
+            .and_then(|v| v.as_u64())
+            .unwrap_or(10) as usize;
         let ql = query.to_lowercase();
         let mut results: Vec<Value> = Vec::new();
         for (gn, graph) in &self.graphs {
             for unit in graph.units() {
-                if results.len() >= max_results { break; }
-                if !languages.is_empty() && !languages.iter().any(|l| l.eq_ignore_ascii_case(unit.language.name())) { continue; }
-                if unit.name.to_lowercase().contains(&ql) || unit.qualified_name.to_lowercase().contains(&ql) {
+                if results.len() >= max_results {
+                    break;
+                }
+                if !languages.is_empty()
+                    && !languages
+                        .iter()
+                        .any(|l| l.eq_ignore_ascii_case(unit.language.name()))
+                {
+                    continue;
+                }
+                if unit.name.to_lowercase().contains(&ql)
+                    || unit.qualified_name.to_lowercase().contains(&ql)
+                {
                     results.push(json!({"graph": gn, "unit_id": unit.id, "name": unit.name, "qualified_name": unit.qualified_name, "type": unit.unit_type.label(), "language": unit.language.name(), "file": unit.file_path.display().to_string()}));
                 }
             }
         }
-        JsonRpcResponse::success(id, json!({"content": [{"type": "text", "text": serde_json::to_string_pretty(&json!({"query": query, "count": results.len(), "results": results})).unwrap_or_default()}]}))
+        JsonRpcResponse::success(
+            id,
+            json!({"content": [{"type": "text", "text": serde_json::to_string_pretty(&json!({"query": query, "count": results.len(), "results": results})).unwrap_or_default()}]}),
+        )
     }
 
     fn tool_omniscience_best(&self, id: Value, args: &Value) -> JsonRpcResponse {
-        let cap = args.get("capability").and_then(|v| v.as_str()).unwrap_or("");
-        let criteria: Vec<String> = args.get("criteria").and_then(|v| v.as_array()).map(|a| a.iter().filter_map(|v| v.as_str().map(String::from)).collect()).unwrap_or_default();
+        let cap = args
+            .get("capability")
+            .and_then(|v| v.as_str())
+            .unwrap_or("");
+        let criteria: Vec<String> = args
+            .get("criteria")
+            .and_then(|v| v.as_array())
+            .map(|a| {
+                a.iter()
+                    .filter_map(|v| v.as_str().map(String::from))
+                    .collect()
+            })
+            .unwrap_or_default();
         let cl = cap.to_lowercase();
         let mut cands: Vec<Value> = Vec::new();
         for (gn, graph) in &self.graphs {
             for unit in graph.units() {
-                if unit.name.to_lowercase().contains(&cl) || unit.qualified_name.to_lowercase().contains(&cl) {
+                if unit.name.to_lowercase().contains(&cl)
+                    || unit.qualified_name.to_lowercase().contains(&cl)
+                {
                     let inc = graph.edges_to(unit.id);
                     let has_t = inc.iter().any(|e| e.edge_type == EdgeType::Tests);
                     let has_d = inc.iter().any(|e| e.edge_type == EdgeType::Documents);
                     let mut s = 0.15f64;
-                    if has_t { s += 0.3; } if has_d { s += 0.2; }
-                    if unit.stability_score > 0.7 { s += 0.2; }
-                    if unit.complexity < 15 { s += 0.15; }
+                    if has_t {
+                        s += 0.3;
+                    }
+                    if has_d {
+                        s += 0.2;
+                    }
+                    if unit.stability_score > 0.7 {
+                        s += 0.2;
+                    }
+                    if unit.complexity < 15 {
+                        s += 0.15;
+                    }
                     cands.push(json!({"graph": gn, "unit_id": unit.id, "name": unit.name, "score": s, "has_tests": has_t, "has_docs": has_d, "stability": unit.stability_score, "complexity": unit.complexity}));
                 }
             }
         }
-        cands.sort_by(|a, b| b["score"].as_f64().unwrap_or(0.0).partial_cmp(&a["score"].as_f64().unwrap_or(0.0)).unwrap_or(std::cmp::Ordering::Equal));
+        cands.sort_by(|a, b| {
+            b["score"]
+                .as_f64()
+                .unwrap_or(0.0)
+                .partial_cmp(&a["score"].as_f64().unwrap_or(0.0))
+                .unwrap_or(std::cmp::Ordering::Equal)
+        });
         cands.truncate(5);
-        JsonRpcResponse::success(id, json!({"content": [{"type": "text", "text": serde_json::to_string_pretty(&json!({"capability": cap, "criteria": criteria, "best": cands})).unwrap_or_default()}]}))
+        JsonRpcResponse::success(
+            id,
+            json!({"content": [{"type": "text", "text": serde_json::to_string_pretty(&json!({"capability": cap, "criteria": criteria, "best": cands})).unwrap_or_default()}]}),
+        )
     }
 
     fn tool_omniscience_census(&self, id: Value, args: &Value) -> JsonRpcResponse {
         let concept = args.get("concept").and_then(|v| v.as_str()).unwrap_or("");
-        let languages: Vec<String> = args.get("languages").and_then(|v| v.as_array()).map(|a| a.iter().filter_map(|v| v.as_str().map(String::from)).collect()).unwrap_or_default();
+        let languages: Vec<String> = args
+            .get("languages")
+            .and_then(|v| v.as_array())
+            .map(|a| {
+                a.iter()
+                    .filter_map(|v| v.as_str().map(String::from))
+                    .collect()
+            })
+            .unwrap_or_default();
         let cl = concept.to_lowercase();
         let mut by_lang: HashMap<String, usize> = HashMap::new();
         let mut by_type: HashMap<String, usize> = HashMap::new();
         let mut total = 0usize;
         for (_gn, graph) in &self.graphs {
             for unit in graph.units() {
-                if !languages.is_empty() && !languages.iter().any(|l| l.eq_ignore_ascii_case(unit.language.name())) { continue; }
-                if unit.name.to_lowercase().contains(&cl) || unit.qualified_name.to_lowercase().contains(&cl) {
+                if !languages.is_empty()
+                    && !languages
+                        .iter()
+                        .any(|l| l.eq_ignore_ascii_case(unit.language.name()))
+                {
+                    continue;
+                }
+                if unit.name.to_lowercase().contains(&cl)
+                    || unit.qualified_name.to_lowercase().contains(&cl)
+                {
                     total += 1;
                     *by_lang.entry(unit.language.name().to_string()).or_insert(0) += 1;
-                    *by_type.entry(unit.unit_type.label().to_string()).or_insert(0) += 1;
+                    *by_type
+                        .entry(unit.unit_type.label().to_string())
+                        .or_insert(0) += 1;
                 }
             }
         }
-        JsonRpcResponse::success(id, json!({"content": [{"type": "text", "text": serde_json::to_string_pretty(&json!({"concept": concept, "total": total, "by_language": by_lang, "by_type": by_type, "graphs": self.graphs.len()})).unwrap_or_default()}]}))
+        JsonRpcResponse::success(
+            id,
+            json!({"content": [{"type": "text", "text": serde_json::to_string_pretty(&json!({"concept": concept, "total": total, "by_language": by_lang, "by_type": by_type, "graphs": self.graphs.len()})).unwrap_or_default()}]}),
+        )
     }
 
     fn tool_omniscience_vuln(&self, id: Value, args: &Value) -> JsonRpcResponse {
@@ -3140,20 +3703,39 @@ impl McpServer {
         };
         let pattern = args.get("pattern").and_then(|v| v.as_str()).unwrap_or("");
         let cve = args.get("cve").and_then(|v| v.as_str()).unwrap_or("");
-        let kws: Vec<&str> = if pattern.is_empty() { vec!["unsafe", "eval", "exec", "sql", "inject", "deserialize", "shell"] } else { vec![pattern] };
+        let kws: Vec<&str> = if pattern.is_empty() {
+            vec![
+                "unsafe",
+                "eval",
+                "exec",
+                "sql",
+                "inject",
+                "deserialize",
+                "shell",
+            ]
+        } else {
+            vec![pattern]
+        };
         let mut findings: Vec<Value> = Vec::new();
         for unit in graph.units() {
             let nl = unit.name.to_lowercase();
             let sl = unit.signature.as_deref().unwrap_or("").to_lowercase();
             for &kw in &kws {
                 if nl.contains(kw) || sl.contains(kw) {
-                    let sev = if kw == "unsafe" || kw == "eval" || kw == "exec" { "high" } else { "medium" };
+                    let sev = if kw == "unsafe" || kw == "eval" || kw == "exec" {
+                        "high"
+                    } else {
+                        "medium"
+                    };
                     findings.push(json!({"unit_id": unit.id, "name": unit.name, "type": unit.unit_type.label(), "file": unit.file_path.display().to_string(), "pattern": kw, "severity": sev}));
                     break;
                 }
             }
         }
-        JsonRpcResponse::success(id, json!({"content": [{"type": "text", "text": serde_json::to_string_pretty(&json!({"pattern": pattern, "cve": cve, "count": findings.len(), "findings": findings})).unwrap_or_default()}]}))
+        JsonRpcResponse::success(
+            id,
+            json!({"content": [{"type": "text", "text": serde_json::to_string_pretty(&json!({"pattern": pattern, "cve": cve, "count": findings.len(), "findings": findings})).unwrap_or_default()}]}),
+        )
     }
 
     fn tool_omniscience_trend(&self, id: Value, args: &Value) -> JsonRpcResponse {
@@ -3161,16 +3743,35 @@ impl McpServer {
         let dl = domain.to_lowercase();
         let mut trends: Vec<Value> = Vec::new();
         for (gn, graph) in &self.graphs {
-            let m: Vec<_> = graph.units().iter().filter(|u| u.name.to_lowercase().contains(&dl) || u.qualified_name.to_lowercase().contains(&dl)).collect();
+            let m: Vec<_> = graph
+                .units()
+                .iter()
+                .filter(|u| {
+                    u.name.to_lowercase().contains(&dl)
+                        || u.qualified_name.to_lowercase().contains(&dl)
+                })
+                .collect();
             if !m.is_empty() {
-                let avg_s: f64 = m.iter().map(|u| u.stability_score as f64).sum::<f64>() / m.len() as f64;
-                let avg_c: f64 = m.iter().map(|u| u.change_count as f64).sum::<f64>() / m.len() as f64;
-                let avg_x: f64 = m.iter().map(|u| u.complexity as f64).sum::<f64>() / m.len() as f64;
-                let dir = if avg_c > 5.0 && avg_s < 0.5 { "declining" } else if avg_s > 0.7 && avg_x < 15.0 { "stable" } else { "emerging" };
+                let avg_s: f64 =
+                    m.iter().map(|u| u.stability_score as f64).sum::<f64>() / m.len() as f64;
+                let avg_c: f64 =
+                    m.iter().map(|u| u.change_count as f64).sum::<f64>() / m.len() as f64;
+                let avg_x: f64 =
+                    m.iter().map(|u| u.complexity as f64).sum::<f64>() / m.len() as f64;
+                let dir = if avg_c > 5.0 && avg_s < 0.5 {
+                    "declining"
+                } else if avg_s > 0.7 && avg_x < 15.0 {
+                    "stable"
+                } else {
+                    "emerging"
+                };
                 trends.push(json!({"graph": gn, "count": m.len(), "avg_stability": avg_s, "avg_changes": avg_c, "avg_complexity": avg_x, "trend": dir}));
             }
         }
-        JsonRpcResponse::success(id, json!({"content": [{"type": "text", "text": serde_json::to_string_pretty(&json!({"domain": domain, "graphs": self.graphs.len(), "trends": trends})).unwrap_or_default()}]}))
+        JsonRpcResponse::success(
+            id,
+            json!({"content": [{"type": "text", "text": serde_json::to_string_pretty(&json!({"domain": domain, "graphs": self.graphs.len(), "trends": trends})).unwrap_or_default()}]}),
+        )
     }
 
     fn tool_omniscience_compare(&self, id: Value, args: &Value) -> JsonRpcResponse {
@@ -3179,21 +3780,73 @@ impl McpServer {
             Err(e) => return JsonRpcResponse::error(id, e),
         };
         let unit_id = args.get("unit_id").and_then(|v| v.as_u64()).unwrap_or(0);
-        let unit = match graph.get_unit(unit_id) { Some(u) => u, None => return JsonRpcResponse::error(id, JsonRpcError::invalid_params(format!("Unit {} not found", unit_id))) };
+        let unit = match graph.get_unit(unit_id) {
+            Some(u) => u,
+            None => {
+                return JsonRpcResponse::error(
+                    id,
+                    JsonRpcError::invalid_params(format!("Unit {} not found", unit_id)),
+                )
+            }
+        };
         let inc = graph.edges_to(unit_id);
         let out = graph.edges_from(unit_id);
         let has_t = inc.iter().any(|e| e.edge_type == EdgeType::Tests);
         let has_d = inc.iter().any(|e| e.edge_type == EdgeType::Documents);
         let mut practices: Vec<Value> = Vec::new();
         let mut score = 0u32;
-        if has_t { score += 20; practices.push(json!({"p": "tests", "s": "pass", "pts": 20})); } else { practices.push(json!({"p": "tests", "s": "fail", "rec": "Add tests"})); }
-        if has_d { score += 15; practices.push(json!({"p": "docs", "s": "pass", "pts": 15})); } else { practices.push(json!({"p": "docs", "s": "fail", "rec": "Add docs"})); }
-        if unit.complexity < 10 { score += 20; practices.push(json!({"p": "complexity", "s": "pass", "pts": 20})); } else if unit.complexity < 20 { score += 10; practices.push(json!({"p": "complexity", "s": "warn", "pts": 10})); } else { practices.push(json!({"p": "complexity", "s": "fail", "rec": "Refactor"})); }
-        if unit.stability_score > 0.7 { score += 15; practices.push(json!({"p": "stability", "s": "pass", "pts": 15})); } else { practices.push(json!({"p": "stability", "s": "fail", "rec": "Stabilize"})); }
-        if out.len() < 10 { score += 15; practices.push(json!({"p": "coupling", "s": "pass", "pts": 15})); } else { practices.push(json!({"p": "coupling", "s": "fail", "rec": "Reduce deps"})); }
-        if unit.doc_summary.is_some() { score += 15; practices.push(json!({"p": "doc_summary", "s": "pass", "pts": 15})); } else { practices.push(json!({"p": "doc_summary", "s": "fail", "rec": "Add summary"})); }
-        let grade = if score >= 80 { "A" } else if score >= 60 { "B" } else if score >= 40 { "C" } else { "D" };
-        JsonRpcResponse::success(id, json!({"content": [{"type": "text", "text": serde_json::to_string_pretty(&json!({"unit_id": unit_id, "name": unit.name, "score": score, "max": 100, "grade": grade, "practices": practices})).unwrap_or_default()}]}))
+        if has_t {
+            score += 20;
+            practices.push(json!({"p": "tests", "s": "pass", "pts": 20}));
+        } else {
+            practices.push(json!({"p": "tests", "s": "fail", "rec": "Add tests"}));
+        }
+        if has_d {
+            score += 15;
+            practices.push(json!({"p": "docs", "s": "pass", "pts": 15}));
+        } else {
+            practices.push(json!({"p": "docs", "s": "fail", "rec": "Add docs"}));
+        }
+        if unit.complexity < 10 {
+            score += 20;
+            practices.push(json!({"p": "complexity", "s": "pass", "pts": 20}));
+        } else if unit.complexity < 20 {
+            score += 10;
+            practices.push(json!({"p": "complexity", "s": "warn", "pts": 10}));
+        } else {
+            practices.push(json!({"p": "complexity", "s": "fail", "rec": "Refactor"}));
+        }
+        if unit.stability_score > 0.7 {
+            score += 15;
+            practices.push(json!({"p": "stability", "s": "pass", "pts": 15}));
+        } else {
+            practices.push(json!({"p": "stability", "s": "fail", "rec": "Stabilize"}));
+        }
+        if out.len() < 10 {
+            score += 15;
+            practices.push(json!({"p": "coupling", "s": "pass", "pts": 15}));
+        } else {
+            practices.push(json!({"p": "coupling", "s": "fail", "rec": "Reduce deps"}));
+        }
+        if unit.doc_summary.is_some() {
+            score += 15;
+            practices.push(json!({"p": "doc_summary", "s": "pass", "pts": 15}));
+        } else {
+            practices.push(json!({"p": "doc_summary", "s": "fail", "rec": "Add summary"}));
+        }
+        let grade = if score >= 80 {
+            "A"
+        } else if score >= 60 {
+            "B"
+        } else if score >= 40 {
+            "C"
+        } else {
+            "D"
+        };
+        JsonRpcResponse::success(
+            id,
+            json!({"content": [{"type": "text", "text": serde_json::to_string_pretty(&json!({"unit_id": unit_id, "name": unit.name, "score": score, "max": 100, "grade": grade, "practices": practices})).unwrap_or_default()}]}),
+        )
     }
 
     fn tool_omniscience_api_usage(&self, id: Value, args: &Value) -> JsonRpcResponse {
@@ -3214,33 +3867,71 @@ impl McpServer {
                 }
             }
         }
-        JsonRpcResponse::success(id, json!({"content": [{"type": "text", "text": serde_json::to_string_pretty(&json!({"api": api, "method": method, "count": usages.len(), "usages": usages})).unwrap_or_default()}]}))
+        JsonRpcResponse::success(
+            id,
+            json!({"content": [{"type": "text", "text": serde_json::to_string_pretty(&json!({"api": api, "method": method, "count": usages.len(), "usages": usages})).unwrap_or_default()}]}),
+        )
     }
 
     fn tool_omniscience_solve(&self, id: Value, args: &Value) -> JsonRpcResponse {
         let problem = args.get("problem").and_then(|v| v.as_str()).unwrap_or("");
-        let languages: Vec<String> = args.get("languages").and_then(|v| v.as_array()).map(|a| a.iter().filter_map(|v| v.as_str().map(String::from)).collect()).unwrap_or_default();
-        let max_r = args.get("max_results").and_then(|v| v.as_u64()).unwrap_or(5) as usize;
-        let kws: Vec<String> = problem.to_lowercase().split_whitespace().filter(|w| w.len() > 3).map(String::from).collect();
+        let languages: Vec<String> = args
+            .get("languages")
+            .and_then(|v| v.as_array())
+            .map(|a| {
+                a.iter()
+                    .filter_map(|v| v.as_str().map(String::from))
+                    .collect()
+            })
+            .unwrap_or_default();
+        let max_r = args
+            .get("max_results")
+            .and_then(|v| v.as_u64())
+            .unwrap_or(5) as usize;
+        let kws: Vec<String> = problem
+            .to_lowercase()
+            .split_whitespace()
+            .filter(|w| w.len() > 3)
+            .map(String::from)
+            .collect();
         let mut sols: Vec<Value> = Vec::new();
         for (gn, graph) in &self.graphs {
             for unit in graph.units() {
-                if sols.len() >= max_r { break; }
-                if !languages.is_empty() && !languages.iter().any(|l| l.eq_ignore_ascii_case(unit.language.name())) { continue; }
+                if sols.len() >= max_r {
+                    break;
+                }
+                if !languages.is_empty()
+                    && !languages
+                        .iter()
+                        .any(|l| l.eq_ignore_ascii_case(unit.language.name()))
+                {
+                    continue;
+                }
                 let nl = unit.name.to_lowercase();
                 let dl = unit.doc_summary.as_deref().unwrap_or("").to_lowercase();
-                let mc = kws.iter().filter(|kw| nl.contains(kw.as_str()) || dl.contains(kw.as_str())).count();
+                let mc = kws
+                    .iter()
+                    .filter(|kw| nl.contains(kw.as_str()) || dl.contains(kw.as_str()))
+                    .count();
                 if mc > 0 {
                     let rel = mc as f64 / kws.len().max(1) as f64;
                     sols.push(json!({"graph": gn, "unit_id": unit.id, "name": unit.name, "type": unit.unit_type.label(), "language": unit.language.name(), "file": unit.file_path.display().to_string(), "relevance": rel, "doc": unit.doc_summary, "signature": unit.signature}));
                 }
             }
         }
-        sols.sort_by(|a, b| b["relevance"].as_f64().unwrap_or(0.0).partial_cmp(&a["relevance"].as_f64().unwrap_or(0.0)).unwrap_or(std::cmp::Ordering::Equal));
+        sols.sort_by(|a, b| {
+            b["relevance"]
+                .as_f64()
+                .unwrap_or(0.0)
+                .partial_cmp(&a["relevance"].as_f64().unwrap_or(0.0))
+                .unwrap_or(std::cmp::Ordering::Equal)
+        });
         sols.truncate(max_r);
-        JsonRpcResponse::success(id, json!({"content": [{"type": "text", "text": serde_json::to_string_pretty(&json!({"problem": problem, "count": sols.len(), "solutions": sols})).unwrap_or_default()}]}))
+        JsonRpcResponse::success(
+            id,
+            json!({"content": [{"type": "text", "text": serde_json::to_string_pretty(&json!({"problem": problem, "count": sols.len(), "solutions": sols})).unwrap_or_default()}]}),
+        )
     }
-
 }
 
 /// Truncate a JSON value to a short summary string.
