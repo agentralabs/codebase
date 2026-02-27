@@ -3670,7 +3670,7 @@ impl McpServer {
         let mut by_lang: HashMap<String, usize> = HashMap::new();
         let mut by_type: HashMap<String, usize> = HashMap::new();
         let mut total = 0usize;
-        for (_gn, graph) in &self.graphs {
+        for graph in self.graphs.values() {
             for unit in graph.units() {
                 if !languages.is_empty()
                     && !languages

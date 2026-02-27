@@ -195,7 +195,7 @@ impl<'g> CodeArchaeologist<'g> {
 
         let oldest = self.history.oldest_timestamp(&unit.file_path);
         let latest = self.history.latest_timestamp(&unit.file_path);
-        let age_seconds = if latest > oldest { latest - oldest } else { 0 };
+        let age_seconds = latest.saturating_sub(oldest);
 
         // Infer evolution phase
         let phase = self.infer_phase(
