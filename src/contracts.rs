@@ -29,27 +29,29 @@ use crate::types::{AcbError, CodeUnitType, FileHeader, DEFAULT_DIMENSION};
 impl From<AcbError> for SisterError {
     fn from(e: AcbError) -> Self {
         match &e {
-            AcbError::UnitNotFound(id) => {
-                SisterError::not_found(format!("code unit {}", id))
-            }
+            AcbError::UnitNotFound(id) => SisterError::not_found(format!("code unit {}", id)),
             AcbError::PathNotFound(path) => {
                 SisterError::not_found(format!("path {}", path.display()))
             }
             AcbError::InvalidMagic => {
                 SisterError::new(ErrorCode::VersionMismatch, "Invalid .acb magic bytes")
             }
-            AcbError::UnsupportedVersion(v) => {
-                SisterError::new(ErrorCode::VersionMismatch, format!("Unsupported .acb version: {}", v))
-            }
-            AcbError::DimensionMismatch { expected, got } => {
-                SisterError::new(ErrorCode::InvalidInput, format!("Dimension mismatch: expected {}, got {}", expected, got))
-            }
-            AcbError::UnsupportedLanguage(lang) => {
-                SisterError::new(ErrorCode::CodebaseError, format!("Unsupported language: {}", lang))
-            }
-            AcbError::ParseError { path, message } => {
-                SisterError::new(ErrorCode::CodebaseError, format!("Parse error in {}: {}", path.display(), message))
-            }
+            AcbError::UnsupportedVersion(v) => SisterError::new(
+                ErrorCode::VersionMismatch,
+                format!("Unsupported .acb version: {}", v),
+            ),
+            AcbError::DimensionMismatch { expected, got } => SisterError::new(
+                ErrorCode::InvalidInput,
+                format!("Dimension mismatch: expected {}, got {}", expected, got),
+            ),
+            AcbError::UnsupportedLanguage(lang) => SisterError::new(
+                ErrorCode::CodebaseError,
+                format!("Unsupported language: {}", lang),
+            ),
+            AcbError::ParseError { path, message } => SisterError::new(
+                ErrorCode::CodebaseError,
+                format!("Parse error in {}: {}", path.display(), message),
+            ),
             AcbError::SemanticError(msg) => {
                 SisterError::new(ErrorCode::CodebaseError, format!("Semantic error: {}", msg))
             }
@@ -59,18 +61,18 @@ impl From<AcbError> for SisterError {
             AcbError::Truncated => {
                 SisterError::new(ErrorCode::StorageError, "File is empty or truncated")
             }
-            AcbError::Corrupt(offset) => {
-                SisterError::new(ErrorCode::ChecksumMismatch, format!("Corrupt data at offset {}", offset))
-            }
+            AcbError::Corrupt(offset) => SisterError::new(
+                ErrorCode::ChecksumMismatch,
+                format!("Corrupt data at offset {}", offset),
+            ),
             AcbError::Io(io_err) => {
                 SisterError::new(ErrorCode::StorageError, format!("I/O error: {}", io_err))
             }
-            AcbError::Compression(msg) => {
-                SisterError::new(ErrorCode::StorageError, format!("Compression error: {}", msg))
-            }
-            _ => {
-                SisterError::new(ErrorCode::CodebaseError, e.to_string())
-            }
+            AcbError::Compression(msg) => SisterError::new(
+                ErrorCode::StorageError,
+                format!("Compression error: {}", msg),
+            ),
+            _ => SisterError::new(ErrorCode::CodebaseError, e.to_string()),
         }
     }
 }
@@ -148,8 +150,7 @@ impl Sister for CodebaseSister {
 
         let graph = if let Some(ref path) = file_path {
             if path.exists() {
-                AcbReader::read_from_file(path)
-                    .map_err(SisterError::from)?
+                AcbReader::read_from_file(path).map_err(SisterError::from)?
             } else if config.create_if_missing {
                 CodeGraph::new(dimension)
             } else {
@@ -193,7 +194,8 @@ impl Sister for CodebaseSister {
         // Save active graph to file if path is set
         if let (Some(ref path), Some(graph)) = (&self.file_path, self.active_graph()) {
             let writer = AcbWriter::new(graph.dimension());
-            writer.write_to_file(graph, path)
+            writer
+                .write_to_file(graph, path)
                 .map_err(SisterError::from)?;
         }
 
@@ -205,15 +207,30 @@ impl Sister for CodebaseSister {
     fn capabilities(&self) -> Vec<Capability> {
         vec![
             Capability::new("symbol_lookup", "Look up symbols by name in the code graph"),
-            Capability::new("impact_analysis", "Analyse the impact of changing a code unit"),
+            Capability::new(
+                "impact_analysis",
+                "Analyse the impact of changing a code unit",
+            ),
             Capability::new("list_units", "List code units filtered by type"),
-            Capability::new("graph_stats", "Get summary statistics about a loaded code graph"),
-            Capability::new("codebase_ground", "Verify a claim about code has graph evidence"),
+            Capability::new(
+                "graph_stats",
+                "Get summary statistics about a loaded code graph",
+            ),
+            Capability::new(
+                "codebase_ground",
+                "Verify a claim about code has graph evidence",
+            ),
             Capability::new("codebase_evidence", "Get graph evidence for a symbol name"),
             Capability::new("codebase_suggest", "Find symbols similar to a name"),
             Capability::new("workspace_create", "Create a multi-codebase workspace"),
-            Capability::new("workspace_query", "Search across all codebases in workspace"),
-            Capability::new("analysis_log", "Log intent and context behind a code analysis"),
+            Capability::new(
+                "workspace_query",
+                "Search across all codebases in workspace",
+            ),
+            Capability::new(
+                "analysis_log",
+                "Log intent and context behind a code analysis",
+            ),
         ]
     }
 }
@@ -229,7 +246,8 @@ impl WorkspaceManagement for CodebaseSister {
             .active_graph()
             .map(|g| g.dimension())
             .unwrap_or(DEFAULT_DIMENSION);
-        self.workspaces.insert(id, (name.to_string(), CodeGraph::new(dimension)));
+        self.workspaces
+            .insert(id, (name.to_string(), CodeGraph::new(dimension)));
         Ok(id)
     }
 
@@ -246,12 +264,13 @@ impl WorkspaceManagement for CodebaseSister {
     }
 
     fn current_workspace_info(&self) -> SisterResult<ContextInfo> {
-        let active_id = self.active.ok_or_else(|| {
-            SisterError::new(ErrorCode::InvalidState, "No active workspace")
-        })?;
-        let (name, graph) = self.workspaces.get(&active_id).ok_or_else(|| {
-            SisterError::context_not_found(active_id.to_string())
-        })?;
+        let active_id = self
+            .active
+            .ok_or_else(|| SisterError::new(ErrorCode::InvalidState, "No active workspace"))?;
+        let (name, graph) = self
+            .workspaces
+            .get(&active_id)
+            .ok_or_else(|| SisterError::context_not_found(active_id.to_string()))?;
 
         Ok(ContextInfo {
             id: active_id,
@@ -295,21 +314,24 @@ impl WorkspaceManagement for CodebaseSister {
     }
 
     fn rename_workspace(&mut self, id: ContextId, new_name: &str) -> SisterResult<()> {
-        let (name, _) = self.workspaces.get_mut(&id).ok_or_else(|| {
-            SisterError::context_not_found(id.to_string())
-        })?;
+        let (name, _) = self
+            .workspaces
+            .get_mut(&id)
+            .ok_or_else(|| SisterError::context_not_found(id.to_string()))?;
         *name = new_name.to_string();
         Ok(())
     }
 
     fn export_workspace(&self, id: ContextId) -> SisterResult<ContextSnapshot> {
-        let (name, graph) = self.workspaces.get(&id).ok_or_else(|| {
-            SisterError::context_not_found(id.to_string())
-        })?;
+        let (name, graph) = self
+            .workspaces
+            .get(&id)
+            .ok_or_else(|| SisterError::context_not_found(id.to_string()))?;
 
         let writer = AcbWriter::new(graph.dimension());
         let mut data = Vec::new();
-        writer.write_to(graph, &mut data)
+        writer
+            .write_to(graph, &mut data)
             .map_err(SisterError::from)?;
         let checksum = *blake3::hash(&data).as_bytes();
 
@@ -340,11 +362,11 @@ impl WorkspaceManagement for CodebaseSister {
         }
 
         let mut cursor = std::io::Cursor::new(&snapshot.data);
-        let graph = AcbReader::read_from(&mut cursor)
-            .map_err(SisterError::from)?;
+        let graph = AcbReader::read_from(&mut cursor).map_err(SisterError::from)?;
 
         let id = ContextId::new();
-        self.workspaces.insert(id, (snapshot.context_info.name, graph));
+        self.workspaces
+            .insert(id, (snapshot.context_info.name, graph));
         Ok(id)
     }
 }
@@ -362,7 +384,10 @@ impl agentic_contracts::prelude::Grounding for CodebaseSister {
         let result = engine.ground_claim(claim);
 
         match result {
-            grounding::GroundingResult::Verified { evidence, confidence } => {
+            grounding::GroundingResult::Verified {
+                evidence,
+                confidence,
+            } => {
                 let contract_evidence: Vec<GroundingEvidence> = evidence
                     .iter()
                     .map(|e| {
@@ -382,7 +407,11 @@ impl agentic_contracts::prelude::Grounding for CodebaseSister {
                     .with_evidence(contract_evidence)
                     .with_reason("All code references found in graph"))
             }
-            grounding::GroundingResult::Partial { supported, unsupported, suggestions } => {
+            grounding::GroundingResult::Partial {
+                supported,
+                unsupported,
+                suggestions,
+            } => {
                 let total = supported.len() + unsupported.len();
                 let confidence = if total > 0 {
                     supported.len() as f64 / total as f64
@@ -399,10 +428,11 @@ impl agentic_contracts::prelude::Grounding for CodebaseSister {
                         unsupported.join(", ")
                     )))
             }
-            grounding::GroundingResult::Ungrounded { claim: _, suggestions } => {
-                Ok(GroundingResult::ungrounded(claim, "No graph backing found")
-                    .with_suggestions(suggestions))
-            }
+            grounding::GroundingResult::Ungrounded {
+                claim: _,
+                suggestions,
+            } => Ok(GroundingResult::ungrounded(claim, "No graph backing found")
+                .with_suggestions(suggestions)),
         }
     }
 
@@ -468,9 +498,9 @@ impl agentic_contracts::prelude::Grounding for CodebaseSister {
 impl Queryable for CodebaseSister {
     fn query(&self, query: Query) -> SisterResult<QueryResult> {
         let start = Instant::now();
-        let graph = self.active_graph().ok_or_else(|| {
-            SisterError::new(ErrorCode::InvalidState, "No active graph")
-        })?;
+        let graph = self
+            .active_graph()
+            .ok_or_else(|| SisterError::new(ErrorCode::InvalidState, "No active graph"))?;
 
         let results: Vec<serde_json::Value> = match query.query_type.as_str() {
             "list" => {
@@ -553,13 +583,15 @@ impl Queryable for CodebaseSister {
 
     fn query_types(&self) -> Vec<QueryTypeInfo> {
         vec![
-            QueryTypeInfo::new("list", "List code units with optional type filter")
-                .optional(vec!["limit", "offset", "unit_type"]),
+            QueryTypeInfo::new("list", "List code units with optional type filter").optional(vec![
+                "limit",
+                "offset",
+                "unit_type",
+            ]),
             QueryTypeInfo::new("search", "Search code units by name prefix")
                 .required(vec!["text"])
                 .optional(vec!["limit"]),
-            QueryTypeInfo::new("get", "Get a specific code unit by ID")
-                .required(vec!["id"]),
+            QueryTypeInfo::new("get", "Get a specific code unit by ID").required(vec!["id"]),
         ]
     }
 }
@@ -590,16 +622,14 @@ fn parse_unit_type(s: &str) -> Option<CodeUnitType> {
 
 impl FileFormatReader for CodebaseSister {
     fn read_file(path: &Path) -> SisterResult<Self> {
-        let graph = AcbReader::read_from_file(path)
-            .map_err(SisterError::from)?;
+        let graph = AcbReader::read_from_file(path).map_err(SisterError::from)?;
         Ok(Self::from_graph(graph, Some(path.to_path_buf())))
     }
 
     fn can_read(path: &Path) -> SisterResult<FileInfo> {
         let mut file = std::fs::File::open(path)
             .map_err(|e| SisterError::new(ErrorCode::StorageError, e.to_string()))?;
-        let header = FileHeader::read_from(&mut file)
-            .map_err(SisterError::from)?;
+        let header = FileHeader::read_from(&mut file).map_err(SisterError::from)?;
 
         let metadata = std::fs::metadata(path)
             .map_err(|e| SisterError::new(ErrorCode::StorageError, e.to_string()))?;
@@ -609,7 +639,9 @@ impl FileFormatReader for CodebaseSister {
             version: Version::new(header.version as u8, 0, 0),
             created_at: chrono::Utc::now(),
             updated_at: chrono::DateTime::from(
-                metadata.modified().unwrap_or(std::time::SystemTime::UNIX_EPOCH),
+                metadata
+                    .modified()
+                    .unwrap_or(std::time::SystemTime::UNIX_EPOCH),
             ),
             content_length: metadata.len(),
             needs_migration: header.version < 1,
@@ -620,8 +652,7 @@ impl FileFormatReader for CodebaseSister {
     fn file_version(path: &Path) -> SisterResult<Version> {
         let mut file = std::fs::File::open(path)
             .map_err(|e| SisterError::new(ErrorCode::StorageError, e.to_string()))?;
-        let header = FileHeader::read_from(&mut file)
-            .map_err(SisterError::from)?;
+        let header = FileHeader::read_from(&mut file).map_err(SisterError::from)?;
         Ok(Version::new(header.version as u8, 0, 0))
     }
 
@@ -635,12 +666,11 @@ impl FileFormatReader for CodebaseSister {
 
 impl FileFormatWriter for CodebaseSister {
     fn write_file(&self, path: &Path) -> SisterResult<()> {
-        let graph = self.active_graph().ok_or_else(|| {
-            SisterError::new(ErrorCode::InvalidState, "No active graph to write")
-        })?;
+        let graph = self
+            .active_graph()
+            .ok_or_else(|| SisterError::new(ErrorCode::InvalidState, "No active graph to write"))?;
         let writer = AcbWriter::new(graph.dimension());
-        writer.write_to_file(graph, path)
-            .map_err(SisterError::from)
+        writer.write_to_file(graph, path).map_err(SisterError::from)
     }
 
     fn to_bytes(&self) -> SisterResult<Vec<u8>> {
@@ -649,7 +679,8 @@ impl FileFormatWriter for CodebaseSister {
         })?;
         let writer = AcbWriter::new(graph.dimension());
         let mut buffer = Vec::new();
-        writer.write_to(graph, &mut buffer)
+        writer
+            .write_to(graph, &mut buffer)
             .map_err(SisterError::from)?;
         Ok(buffer)
     }
@@ -665,8 +696,7 @@ mod tests {
     use crate::types::{CodeUnitBuilder, Language, Span};
 
     fn make_test_sister() -> CodebaseSister {
-        let config = SisterConfig::stateless()
-            .option("dimension", DEFAULT_DIMENSION);
+        let config = SisterConfig::stateless().option("dimension", DEFAULT_DIMENSION);
         CodebaseSister::init(config).unwrap()
     }
 
@@ -755,17 +785,19 @@ mod tests {
         add_test_units(&mut sister);
 
         // Ground a claim with known symbols
-        let result = agentic_contracts::prelude::Grounding::ground(&sister, "process_payment").unwrap();
+        let result =
+            agentic_contracts::prelude::Grounding::ground(&sister, "process_payment").unwrap();
         // Should find the function
         assert!(
-            result.status == GroundingStatus::Verified
-                || result.status == GroundingStatus::Partial,
+            result.status == GroundingStatus::Verified || result.status == GroundingStatus::Partial,
             "Expected verified or partial, got {:?}",
             result.status
         );
 
         // Ground a claim with unknown symbol
-        let result = agentic_contracts::prelude::Grounding::ground(&sister, "totally_fake_function_xyz").unwrap();
+        let result =
+            agentic_contracts::prelude::Grounding::ground(&sister, "totally_fake_function_xyz")
+                .unwrap();
         assert_eq!(result.status, GroundingStatus::Ungrounded);
     }
 
@@ -774,8 +806,13 @@ mod tests {
         let mut sister = make_test_sister();
         add_test_units(&mut sister);
 
-        let evidence = agentic_contracts::prelude::Grounding::evidence(&sister, "process_payment", 10).unwrap();
-        assert!(!evidence.is_empty(), "Expected evidence for 'process_payment'");
+        let evidence =
+            agentic_contracts::prelude::Grounding::evidence(&sister, "process_payment", 10)
+                .unwrap();
+        assert!(
+            !evidence.is_empty(),
+            "Expected evidence for 'process_payment'"
+        );
         assert_eq!(evidence[0].source_sister, SisterType::Codebase);
     }
 
@@ -784,7 +821,8 @@ mod tests {
         let mut sister = make_test_sister();
         add_test_units(&mut sister);
 
-        let suggestions = agentic_contracts::prelude::Grounding::suggest(&sister, "process_pay", 5).unwrap();
+        let suggestions =
+            agentic_contracts::prelude::Grounding::suggest(&sister, "process_pay", 5).unwrap();
         // Should suggest "process_payment" as a similar name
         assert!(!suggestions.is_empty());
     }
