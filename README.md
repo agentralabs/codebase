@@ -11,7 +11,7 @@
 </p>
 
 <p align="center">
-  <a href="#quickstart">Quickstart</a> · <a href="#problems-solved">Problems Solved</a> · <a href="#how-it-works">How It Works</a> · <a href="#why-agenticcodebase">Why</a> · <a href="#benchmarks">Benchmarks</a> · <a href="#the-query-engine">Query Engine</a> · <a href="#mcp-server">MCP Server</a> · <a href="#install">Install</a> · <a href="INSTALL.md">Full Install Guide</a> · <a href="docs/api-reference.md">API</a> · <a href="paper/paper-i-semantic-compiler/agenticcodebase-paper.pdf">Paper</a>
+  <a href="#quickstart">Quickstart</a> · <a href="#problems-solved">Problems Solved</a> · <a href="#how-it-works">How It Works</a> · <a href="#why-agenticcodebase">Why</a> · <a href="#benchmarks">Benchmarks</a> · <a href="#the-query-engine">Query Engine</a> · <a href="#mcp-server">MCP Server</a> · <a href="#install">Install</a> · <a href="INSTALL.md">Full Install Guide</a> · <a href="docs/api-reference.md">API</a> · <a href="paper/paper-i-semantic-compiler/agenticcodebase-paper.pdf">Papers</a>
 </p>
 
 ---
