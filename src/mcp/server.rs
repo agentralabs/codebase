@@ -313,6 +313,38 @@ impl McpServer {
                             "required": ["intent"]
                         }
                     },
+                    {
+                        "name": "session_start",
+                        "description": "Start a new codebase interaction session",
+                        "inputSchema": {
+                            "type": "object",
+                            "properties": {
+                                "session_id": { "type": "integer", "description": "Optional explicit session ID" },
+                                "metadata": { "type": "object", "description": "Optional session metadata" }
+                            }
+                        }
+                    },
+                    {
+                        "name": "session_end",
+                        "description": "End the current codebase interaction session",
+                        "inputSchema": {
+                            "type": "object",
+                            "properties": {
+                                "session_id": { "type": "integer", "description": "Optional explicit session ID" },
+                                "summary": { "type": "string", "description": "Optional session summary" }
+                            }
+                        }
+                    },
+                    {
+                        "name": "codebase_session_resume",
+                        "description": "Load context from previous codebase interactions",
+                        "inputSchema": {
+                            "type": "object",
+                            "properties": {
+                                "limit": { "type": "integer", "description": "Maximum number of recent tool calls", "default": 5 }
+                            }
+                        }
+                    },
                     // ── Grounding tools ──────────────────────────────────
                     {
                         "name": "codebase_ground",
@@ -881,6 +913,9 @@ impl McpServer {
             "graph_stats" => self.tool_graph_stats(id.clone(), &arguments),
             "list_units" => self.tool_list_units(id.clone(), &arguments),
             "analysis_log" => return self.tool_analysis_log(id, &arguments),
+            "session_start" => return self.tool_session_start(id, &arguments),
+            "session_end" => return self.tool_session_end(id, &arguments),
+            "codebase_session_resume" => self.tool_codebase_session_resume(id.clone(), &arguments),
             // Grounding tools
             "codebase_ground" => self.tool_codebase_ground(id.clone(), &arguments),
             "codebase_evidence" => self.tool_codebase_evidence(id.clone(), &arguments),
@@ -984,17 +1019,32 @@ impl McpServer {
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap_or_default()
             .as_secs();
-        let summary = truncate_json_summary(&arguments, 200);
-        let graph_name = arguments
-            .get("graph")
-            .and_then(|v| v.as_str())
-            .map(String::from);
-        self.operation_log.push(OperationRecord {
-            tool_name: tool_name.to_string(),
-            summary,
-            timestamp: now,
-            graph_name,
-        });
+        let capture_mode = read_env_string_any(&["ACB_AUTO_CAPTURE_MODE", "AUTO_CAPTURE_MODE"])
+            .unwrap_or_else(|| "summary".to_string());
+        if !capture_mode.eq_ignore_ascii_case("off") {
+            let redact =
+                read_env_bool_any(&["ACB_AUTO_CAPTURE_REDACT", "AUTO_CAPTURE_REDACT"], true);
+            let max_chars = read_env_usize_any(
+                &["ACB_AUTO_CAPTURE_MAX_CHARS", "AUTO_CAPTURE_MAX_CHARS"],
+                768,
+            )
+            .max(64);
+            let summary = if redact {
+                "<redacted>".to_string()
+            } else {
+                truncate_json_summary(&arguments, max_chars)
+            };
+            let graph_name = arguments
+                .get("graph")
+                .and_then(|v| v.as_str())
+                .map(String::from);
+            self.operation_log.push(OperationRecord {
+                tool_name: tool_name.to_string(),
+                summary,
+                timestamp: now,
+                graph_name,
+            });
+        }
 
         result
     }
@@ -1476,6 +1526,101 @@ impl McpServer {
                     "text": serde_json::to_string_pretty(&json!({
                         "log_index": index,
                         "message": "Analysis context logged"
+                    })).unwrap_or_default()
+                }]
+            }),
+        )
+    }
+
+    /// Tool: session_start — start or reset the current interaction session.
+    fn tool_session_start(&mut self, id: Value, args: &Value) -> JsonRpcResponse {
+        let now = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_secs();
+        let session_id = args
+            .get("session_id")
+            .and_then(|v| v.as_u64())
+            .unwrap_or(now);
+        let metadata = args.get("metadata").cloned().unwrap_or_else(|| json!({}));
+
+        self.session_start_time = Some(now);
+        self.operation_log.clear();
+
+        JsonRpcResponse::success(
+            id,
+            json!({
+                "content": [{
+                    "type": "text",
+                    "text": serde_json::to_string_pretty(&json!({
+                        "session_id": session_id,
+                        "started_at": now,
+                        "metadata": metadata,
+                    })).unwrap_or_default()
+                }]
+            }),
+        )
+    }
+
+    /// Tool: session_end — end the current interaction session.
+    fn tool_session_end(&mut self, id: Value, args: &Value) -> JsonRpcResponse {
+        let now = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_secs();
+        let session_id = args
+            .get("session_id")
+            .and_then(|v| v.as_u64())
+            .unwrap_or(now);
+        let summary = args.get("summary").and_then(|v| v.as_str());
+        let started_at = self.session_start_time.take();
+        let duration_seconds = started_at.map(|start| now.saturating_sub(start));
+
+        JsonRpcResponse::success(
+            id,
+            json!({
+                "content": [{
+                    "type": "text",
+                    "text": serde_json::to_string_pretty(&json!({
+                        "session_id": session_id,
+                        "ended_at": now,
+                        "started_at": started_at,
+                        "duration_seconds": duration_seconds,
+                        "operation_count": self.operation_log.len(),
+                        "summary": summary,
+                    })).unwrap_or_default()
+                }]
+            }),
+        )
+    }
+
+    /// Tool: codebase_session_resume — load recent session context.
+    fn tool_codebase_session_resume(&self, id: Value, args: &Value) -> JsonRpcResponse {
+        let limit = args.get("limit").and_then(|v| v.as_u64()).unwrap_or(5) as usize;
+        let recent: Vec<Value> = self
+            .operation_log
+            .iter()
+            .rev()
+            .take(limit.max(1))
+            .map(|record| {
+                json!({
+                    "tool_name": record.tool_name,
+                    "summary": record.summary,
+                    "timestamp": record.timestamp,
+                    "graph_name": record.graph_name
+                })
+            })
+            .collect();
+
+        JsonRpcResponse::success(
+            id,
+            json!({
+                "content": [{
+                    "type": "text",
+                    "text": serde_json::to_string_pretty(&json!({
+                        "session_start_time": self.session_start_time,
+                        "operation_count": self.operation_log.len(),
+                        "recent_tool_calls": recent
                     })).unwrap_or_default()
                 }]
             }),
@@ -3942,6 +4087,30 @@ fn truncate_json_summary(value: &Value, max_len: usize) -> String {
     } else {
         format!("{}...", &s[..max_len])
     }
+}
+
+fn read_env_string_any(names: &[&str]) -> Option<String> {
+    names
+        .iter()
+        .find_map(|name| std::env::var(name).ok())
+        .map(|value| value.trim().to_string())
+}
+
+fn read_env_bool_any(names: &[&str], default: bool) -> bool {
+    read_env_string_any(names)
+        .map(|value| {
+            matches!(
+                value.trim().to_ascii_lowercase().as_str(),
+                "1" | "true" | "yes" | "on"
+            )
+        })
+        .unwrap_or(default)
+}
+
+fn read_env_usize_any(names: &[&str], default: usize) -> usize {
+    read_env_string_any(names)
+        .and_then(|value| value.parse::<usize>().ok())
+        .unwrap_or(default)
 }
 
 impl Default for McpServer {

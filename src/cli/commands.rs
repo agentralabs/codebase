@@ -338,6 +338,16 @@ pub enum Command {
         #[command(subcommand)]
         command: WorkspaceCommand,
     },
+
+    /// Runtime sync workflow for scanning workspace `.acb` files.
+    RuntimeSync {
+        /// Workspace root to scan.
+        #[arg(long, default_value = ".")]
+        workspace: String,
+        /// Maximum directory depth for scan.
+        #[arg(long, default_value_t = 4)]
+        max_depth: u32,
+    },
 }
 
 #[derive(Subcommand)]
@@ -392,6 +402,7 @@ pub fn run(cli: Cli) -> Result<(), Box<dyn std::error::Error>> {
         Some(Command::Evidence { .. }) => "evidence",
         Some(Command::Suggest { .. }) => "suggest",
         Some(Command::Workspace { .. }) => "workspace",
+        Some(Command::RuntimeSync { .. }) => "runtime-sync",
     };
     let started = Instant::now();
     let result = match &cli.command {
@@ -454,6 +465,10 @@ pub fn run(cli: Cli) -> Result<(), Box<dyn std::error::Error>> {
         Some(Command::Evidence { file, query, limit }) => cmd_evidence(file, query, *limit, &cli),
         Some(Command::Suggest { file, query, limit }) => cmd_suggest(file, query, *limit, &cli),
         Some(Command::Workspace { command }) => cmd_workspace(command, &cli),
+        Some(Command::RuntimeSync {
+            workspace,
+            max_depth,
+        }) => cmd_runtime_sync(workspace, *max_depth, &cli),
     };
 
     emit_cli_health_ledger(command_name, started.elapsed(), result.is_ok());
@@ -569,6 +584,88 @@ fn load_workspace_state() -> Result<WorkspaceState, Box<dyn std::error::Error>> 
     let raw = std::fs::read_to_string(path)?;
     let state = serde_json::from_str::<WorkspaceState>(&raw)?;
     Ok(state)
+}
+
+fn cmd_runtime_sync(
+    workspace: &str,
+    max_depth: u32,
+    _cli: &Cli,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let root = PathBuf::from(workspace);
+    if !root.exists() {
+        return Err(format!("workspace root does not exist: {}", workspace).into());
+    }
+
+    let mut files = Vec::new();
+    scan_acb_files(&root, max_depth, &mut files);
+
+    let mut total_size_bytes = 0u64;
+    let mut per_file = Vec::new();
+    for file in &files {
+        match std::fs::metadata(file) {
+            Ok(meta) => {
+                let size = meta.len();
+                total_size_bytes = total_size_bytes.saturating_add(size);
+                per_file.push(serde_json::json!({
+                    "path": file.display().to_string(),
+                    "size_bytes": size
+                }));
+            }
+            Err(e) => {
+                per_file.push(serde_json::json!({
+                    "path": file.display().to_string(),
+                    "error": e.to_string()
+                }));
+            }
+        }
+    }
+
+    let report = serde_json::json!({
+        "mode": "runtime-sync",
+        "workspace": workspace,
+        "max_depth": max_depth,
+        "scanned_files": files.len(),
+        "total_size_bytes": total_size_bytes,
+        "synced_at": chrono::Utc::now().to_rfc3339(),
+        "files": per_file,
+    });
+
+    write_runtime_sync_snapshot(&report)?;
+    println!("{}", serde_json::to_string_pretty(&report)?);
+    Ok(())
+}
+
+fn write_runtime_sync_snapshot(
+    report: &serde_json::Value,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let home = std::env::var("HOME").unwrap_or_else(|_| ".".to_string());
+    let path = PathBuf::from(home)
+        .join(".agentic")
+        .join("codebase")
+        .join("runtime-sync.json");
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent)?;
+    }
+    std::fs::write(path, serde_json::to_string_pretty(report)?)?;
+    Ok(())
+}
+
+fn scan_acb_files(root: &Path, max_depth: u32, out: &mut Vec<PathBuf>) {
+    if max_depth == 0 {
+        return;
+    }
+    let Ok(entries) = std::fs::read_dir(root) else {
+        return;
+    };
+
+    for entry in entries.flatten() {
+        let path = entry.path();
+        if path.is_dir() {
+            scan_acb_files(&path, max_depth - 1, out);
+        } else if path.extension().and_then(|ext| ext.to_str()) == Some("acb") {
+            out.push(path);
+        }
+    }
 }
 
 fn save_workspace_state(state: &WorkspaceState) -> Result<(), Box<dyn std::error::Error>> {
