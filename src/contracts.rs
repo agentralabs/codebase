@@ -785,8 +785,7 @@ mod tests {
         add_test_units(&mut sister);
 
         // Ground a claim with known symbols
-        let result =
-            agentic_sdk::prelude::Grounding::ground(&sister, "process_payment").unwrap();
+        let result = agentic_sdk::prelude::Grounding::ground(&sister, "process_payment").unwrap();
         // Should find the function
         assert!(
             result.status == GroundingStatus::Verified || result.status == GroundingStatus::Partial,
@@ -796,8 +795,7 @@ mod tests {
 
         // Ground a claim with unknown symbol
         let result =
-            agentic_sdk::prelude::Grounding::ground(&sister, "totally_fake_function_xyz")
-                .unwrap();
+            agentic_sdk::prelude::Grounding::ground(&sister, "totally_fake_function_xyz").unwrap();
         assert_eq!(result.status, GroundingStatus::Ungrounded);
     }
 
@@ -807,8 +805,7 @@ mod tests {
         add_test_units(&mut sister);
 
         let evidence =
-            agentic_sdk::prelude::Grounding::evidence(&sister, "process_payment", 10)
-                .unwrap();
+            agentic_sdk::prelude::Grounding::evidence(&sister, "process_payment", 10).unwrap();
         assert!(
             !evidence.is_empty(),
             "Expected evidence for 'process_payment'"
