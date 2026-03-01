@@ -5,6 +5,7 @@
 //! Trait-based design ensures Hydra compatibility — swap implementors without refactoring.
 //!
 //! Note: Codebase has no core library crate, so bridges live in the MCP crate.
+#![allow(dead_code)]
 
 /// Bridge to agentic-memory for persisting code analysis in memory.
 pub trait MemoryBridge: Send + Sync {
@@ -93,7 +94,12 @@ pub trait ContractBridge: Send + Sync {
 /// Bridge to agentic-vision for code-visual bindings.
 pub trait VisionBridge: Send + Sync {
     /// Link a code unit to a visual capture
-    fn link_to_capture(&self, unit_id: u64, capture_id: u64, binding_type: &str) -> Result<(), String> {
+    fn link_to_capture(
+        &self,
+        unit_id: u64,
+        capture_id: u64,
+        binding_type: &str,
+    ) -> Result<(), String> {
         let _ = (unit_id, capture_id, binding_type);
         Err("Vision bridge not connected".to_string())
     }
@@ -108,7 +114,12 @@ pub trait VisionBridge: Send + Sync {
 /// Bridge to agentic-comm for code-aware messaging.
 pub trait CommBridge: Send + Sync {
     /// Broadcast a code change notification
-    fn broadcast_change(&self, unit_id: u64, change_type: &str, channel_id: u64) -> Result<(), String> {
+    fn broadcast_change(
+        &self,
+        unit_id: u64,
+        change_type: &str,
+        channel_id: u64,
+    ) -> Result<(), String> {
         let _ = (unit_id, change_type, channel_id);
         Err("Comm bridge not connected".to_string())
     }
@@ -132,7 +143,7 @@ impl VisionBridge for NoOpBridges {}
 impl CommBridge for NoOpBridges {}
 
 /// Configuration for which bridges are active.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct BridgeConfig {
     pub memory_enabled: bool,
     pub identity_enabled: bool,
@@ -140,19 +151,6 @@ pub struct BridgeConfig {
     pub contract_enabled: bool,
     pub vision_enabled: bool,
     pub comm_enabled: bool,
-}
-
-impl Default for BridgeConfig {
-    fn default() -> Self {
-        Self {
-            memory_enabled: false,
-            identity_enabled: false,
-            time_enabled: false,
-            contract_enabled: false,
-            vision_enabled: false,
-            comm_enabled: false,
-        }
-    }
 }
 
 /// Hydra adapter trait — future orchestrator discovery interface.
@@ -246,7 +244,7 @@ mod tests {
 
     #[test]
     fn noop_bridges_default_and_clone() {
-        let b = NoOpBridges::default();
+        let b = NoOpBridges;
         let _b2 = b.clone();
     }
 }
