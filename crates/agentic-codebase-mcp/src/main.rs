@@ -15,6 +15,7 @@ use std::time::SystemTime;
 use agentic_codebase::engine::compile::{CompileOptions, CompilePipeline};
 use walkdir::WalkDir;
 
+mod bridges;
 mod ghost_bridge;
 
 #[derive(Parser)]
