@@ -31,6 +31,7 @@ pub struct AuditEntry {
 
 impl AuditEntry {
     /// Create a new audit entry with the current timestamp.
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         tool: impl Into<String>,
         layer: Layer,

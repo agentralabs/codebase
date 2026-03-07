@@ -1,6 +1,5 @@
 /// Bridge traits for inter-sister communication.
 /// All methods have NoOp defaults for standalone operation.
-
 pub trait MemoryBridge {
     fn store_context(&self, _key: &str, _value: &str) -> Result<(), String> {
         Ok(())

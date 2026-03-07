@@ -4,11 +4,12 @@ use serde::{Deserialize, Serialize};
 ///
 /// Ordered from cheapest (fewest tokens) to most expensive.
 /// Default is `IdsOnly` to be maximally token-conservative.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
 pub enum ExtractionIntent {
     /// Only check if the item exists. Cheapest possible query.
     Exists,
     /// Return only identifiers. Default and very cheap.
+    #[default]
     IdsOnly,
     /// Return a compact summary (key fields only).
     Summary,
@@ -39,12 +40,6 @@ impl ExtractionIntent {
     /// Whether this is a minimal (token-conservative) intent.
     pub fn is_minimal(&self) -> bool {
         matches!(self, ExtractionIntent::Exists | ExtractionIntent::IdsOnly)
-    }
-}
-
-impl Default for ExtractionIntent {
-    fn default() -> Self {
-        ExtractionIntent::IdsOnly
     }
 }
 
