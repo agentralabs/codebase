@@ -262,656 +262,656 @@ impl McpServer {
         }
 
         let mut tools_array = json!([
-                    {
-                        "name": "symbol_lookup",
-                        "description": "Look up symbols by name in the code graph",
-                        "inputSchema": {
-                            "type": "object",
-                            "properties": {
-                                "graph": { "type": "string", "description": "Graph name" },
-                                "name": { "type": "string", "description": "Symbol name to search for" },
-                                "mode": { "type": "string", "enum": ["exact", "prefix", "contains", "fuzzy"], "default": "prefix" },
-                                "limit": { "type": "integer", "minimum": 1, "default": 10 }
-                            },
-                            "required": ["name"]
+            {
+                "name": "symbol_lookup",
+                "description": "Look up symbols by name in the code graph",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "graph": { "type": "string", "description": "Graph name" },
+                        "name": { "type": "string", "description": "Symbol name to search for" },
+                        "mode": { "type": "string", "enum": ["exact", "prefix", "contains", "fuzzy"], "default": "prefix" },
+                        "limit": { "type": "integer", "minimum": 1, "default": 10 }
+                    },
+                    "required": ["name"]
+                }
+            },
+            {
+                "name": "impact_analysis",
+                "description": "Analyse the impact of changing a code unit",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "graph": { "type": "string", "description": "Graph name" },
+                        "unit_id": { "type": "integer", "description": "Code unit ID to analyse" },
+                        "max_depth": { "type": "integer", "minimum": 0, "default": 3 }
+                    },
+                    "required": ["unit_id"]
+                }
+            },
+            {
+                "name": "graph_stats",
+                "description": "Get summary statistics about a loaded code graph",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "graph": { "type": "string", "description": "Graph name" }
+                    }
+                }
+            },
+            {
+                "name": "list_units",
+                "description": "List code units in a graph, optionally filtered by type",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "graph": { "type": "string", "description": "Graph name" },
+                        "unit_type": {
+                            "type": "string",
+                            "description": "Filter by unit type",
+                            "enum": [
+                                "module", "symbol", "type", "function", "parameter", "import",
+                                "test", "doc", "config", "pattern", "trait", "impl", "macro"
+                            ]
+                        },
+                        "limit": { "type": "integer", "default": 50 }
+                    }
+                }
+            },
+            {
+                "name": "analysis_log",
+                "description": "Log the intent and context behind a code analysis. Call this to record WHY you are performing a lookup or analysis",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "intent": {
+                            "type": "string",
+                            "description": "Why you are analysing — the goal or reason for the code query"
+                        },
+                        "finding": {
+                            "type": "string",
+                            "description": "What you found or concluded from the analysis"
+                        },
+                        "graph": {
+                            "type": "string",
+                            "description": "Optional graph name this analysis relates to"
+                        },
+                        "topic": {
+                            "type": "string",
+                            "description": "Optional topic or category (e.g., 'refactoring', 'bug-hunt')"
                         }
                     },
-                    {
-                        "name": "impact_analysis",
-                        "description": "Analyse the impact of changing a code unit",
-                        "inputSchema": {
-                            "type": "object",
-                            "properties": {
-                                "graph": { "type": "string", "description": "Graph name" },
-                                "unit_id": { "type": "integer", "description": "Code unit ID to analyse" },
-                                "max_depth": { "type": "integer", "minimum": 0, "default": 3 }
-                            },
-                            "required": ["unit_id"]
+                    "required": ["intent"]
+                }
+            },
+            {
+                "name": "session_start",
+                "description": "Start a new codebase interaction session",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "session_id": { "type": "integer", "description": "Optional explicit session ID" },
+                        "metadata": { "type": "object", "description": "Optional session metadata" }
+                    }
+                }
+            },
+            {
+                "name": "session_end",
+                "description": "End the current codebase interaction session",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "session_id": { "type": "integer", "description": "Optional explicit session ID" },
+                        "summary": { "type": "string", "description": "Optional session summary" }
+                    }
+                }
+            },
+            {
+                "name": "codebase_session_resume",
+                "description": "Load context from previous codebase interactions",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "limit": { "type": "integer", "description": "Maximum number of recent tool calls", "default": 5 }
+                    }
+                }
+            },
+            // ── Grounding tools ──────────────────────────────────
+            {
+                "name": "codebase_ground",
+                "description": "Verify a claim about code has graph evidence. Use before asserting code exists",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "claim": { "type": "string", "description": "The claim to verify (e.g., 'function validate_token exists')" },
+                        "graph": { "type": "string", "description": "Graph name" },
+                        "strict": { "type": "boolean", "description": "If true, partial matches return Ungrounded (default: false)", "default": false }
+                    },
+                    "required": ["claim"]
+                }
+            },
+            {
+                "name": "codebase_evidence",
+                "description": "Get graph evidence for a symbol name",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "name": { "type": "string", "description": "Symbol name to find" },
+                        "graph": { "type": "string", "description": "Graph name" },
+                        "types": {
+                            "type": "array",
+                            "items": { "type": "string" },
+                            "description": "Filter by type: function, struct, enum, module, trait (optional)"
                         }
                     },
-                    {
-                        "name": "graph_stats",
-                        "description": "Get summary statistics about a loaded code graph",
-                        "inputSchema": {
-                            "type": "object",
-                            "properties": {
-                                "graph": { "type": "string", "description": "Graph name" }
-                            }
-                        }
+                    "required": ["name"]
+                }
+            },
+            {
+                "name": "codebase_suggest",
+                "description": "Find symbols similar to a name (for corrections)",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "name": { "type": "string", "description": "Name to find similar matches for" },
+                        "graph": { "type": "string", "description": "Graph name" },
+                        "limit": { "type": "integer", "minimum": 1, "default": 5, "description": "Max suggestions (default: 5)" }
                     },
-                    {
-                        "name": "list_units",
-                        "description": "List code units in a graph, optionally filtered by type",
-                        "inputSchema": {
-                            "type": "object",
-                            "properties": {
-                                "graph": { "type": "string", "description": "Graph name" },
-                                "unit_type": {
-                                    "type": "string",
-                                    "description": "Filter by unit type",
-                                    "enum": [
-                                        "module", "symbol", "type", "function", "parameter", "import",
-                                        "test", "doc", "config", "pattern", "trait", "impl", "macro"
-                                    ]
-                                },
-                                "limit": { "type": "integer", "default": 50 }
-                            }
-                        }
+                    "required": ["name"]
+                }
+            },
+            // ── Workspace tools ──────────────────────────────────
+            {
+                "name": "workspace_create",
+                "description": "Create a workspace to load multiple codebases",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "name": { "type": "string", "description": "Workspace name (e.g., 'cpp-to-rust-migration')" }
                     },
-                    {
-                        "name": "analysis_log",
-                        "description": "Log the intent and context behind a code analysis. Call this to record WHY you are performing a lookup or analysis",
-                        "inputSchema": {
-                            "type": "object",
-                            "properties": {
-                                "intent": {
-                                    "type": "string",
-                                    "description": "Why you are analysing — the goal or reason for the code query"
-                                },
-                                "finding": {
-                                    "type": "string",
-                                    "description": "What you found or concluded from the analysis"
-                                },
-                                "graph": {
-                                    "type": "string",
-                                    "description": "Optional graph name this analysis relates to"
-                                },
-                                "topic": {
-                                    "type": "string",
-                                    "description": "Optional topic or category (e.g., 'refactoring', 'bug-hunt')"
-                                }
-                            },
-                            "required": ["intent"]
-                        }
+                    "required": ["name"]
+                }
+            },
+            {
+                "name": "workspace_add",
+                "description": "Add a codebase to an existing workspace",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "workspace": { "type": "string", "description": "Workspace name or id" },
+                        "graph": { "type": "string", "description": "Name of a loaded graph to add" },
+                        "path": { "type": "string", "description": "Path label for this codebase" },
+                        "role": { "type": "string", "enum": ["source", "target", "reference", "comparison"], "description": "Role of this codebase" },
+                        "language": { "type": "string", "description": "Optional language hint" }
                     },
-                    {
-                        "name": "session_start",
-                        "description": "Start a new codebase interaction session",
-                        "inputSchema": {
-                            "type": "object",
-                            "properties": {
-                                "session_id": { "type": "integer", "description": "Optional explicit session ID" },
-                                "metadata": { "type": "object", "description": "Optional session metadata" }
-                            }
-                        }
+                    "required": ["workspace", "graph", "role"]
+                }
+            },
+            {
+                "name": "workspace_list",
+                "description": "List all contexts in a workspace",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "workspace": { "type": "string", "description": "Workspace name or id" }
                     },
-                    {
-                        "name": "session_end",
-                        "description": "End the current codebase interaction session",
-                        "inputSchema": {
-                            "type": "object",
-                            "properties": {
-                                "session_id": { "type": "integer", "description": "Optional explicit session ID" },
-                                "summary": { "type": "string", "description": "Optional session summary" }
-                            }
-                        }
+                    "required": ["workspace"]
+                }
+            },
+            {
+                "name": "workspace_query",
+                "description": "Search across all codebases in workspace",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "workspace": { "type": "string", "description": "Workspace name or id" },
+                        "query": { "type": "string", "description": "Search query" },
+                        "roles": { "type": "array", "items": { "type": "string" }, "description": "Filter by role (optional)" }
                     },
-                    {
-                        "name": "codebase_session_resume",
-                        "description": "Load context from previous codebase interactions",
-                        "inputSchema": {
-                            "type": "object",
-                            "properties": {
-                                "limit": { "type": "integer", "description": "Maximum number of recent tool calls", "default": 5 }
-                            }
-                        }
+                    "required": ["workspace", "query"]
+                }
+            },
+            {
+                "name": "workspace_compare",
+                "description": "Compare a symbol between source and target",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "workspace": { "type": "string", "description": "Workspace name or id" },
+                        "symbol": { "type": "string", "description": "Symbol to compare" }
                     },
-                    // ── Grounding tools ──────────────────────────────────
-                    {
-                        "name": "codebase_ground",
-                        "description": "Verify a claim about code has graph evidence. Use before asserting code exists",
-                        "inputSchema": {
-                            "type": "object",
-                            "properties": {
-                                "claim": { "type": "string", "description": "The claim to verify (e.g., 'function validate_token exists')" },
-                                "graph": { "type": "string", "description": "Graph name" },
-                                "strict": { "type": "boolean", "description": "If true, partial matches return Ungrounded (default: false)", "default": false }
-                            },
-                            "required": ["claim"]
-                        }
+                    "required": ["workspace", "symbol"]
+                }
+            },
+            {
+                "name": "workspace_xref",
+                "description": "Find where symbol exists/doesn't exist across contexts",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "workspace": { "type": "string", "description": "Workspace name or id" },
+                        "symbol": { "type": "string", "description": "Symbol to find" }
                     },
-                    {
-                        "name": "codebase_evidence",
-                        "description": "Get graph evidence for a symbol name",
-                        "inputSchema": {
-                            "type": "object",
-                            "properties": {
-                                "name": { "type": "string", "description": "Symbol name to find" },
-                                "graph": { "type": "string", "description": "Graph name" },
-                                "types": {
-                                    "type": "array",
-                                    "items": { "type": "string" },
-                                    "description": "Filter by type: function, struct, enum, module, trait (optional)"
-                                }
-                            },
-                            "required": ["name"]
-                        }
+                    "required": ["workspace", "symbol"]
+                }
+            },
+            // ── Translation tools ────────────────────────────────
+            {
+                "name": "translation_record",
+                "description": "Record source→target symbol mapping",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "workspace": { "type": "string", "description": "Workspace name or id" },
+                        "source_symbol": { "type": "string", "description": "Symbol in source codebase" },
+                        "target_symbol": { "type": "string", "description": "Symbol in target (null if not ported)" },
+                        "status": { "type": "string", "enum": ["not_started", "in_progress", "ported", "verified", "skipped"], "description": "Porting status" },
+                        "notes": { "type": "string", "description": "Optional notes" }
                     },
-                    {
-                        "name": "codebase_suggest",
-                        "description": "Find symbols similar to a name (for corrections)",
-                        "inputSchema": {
-                            "type": "object",
-                            "properties": {
-                                "name": { "type": "string", "description": "Name to find similar matches for" },
-                                "graph": { "type": "string", "description": "Graph name" },
-                                "limit": { "type": "integer", "minimum": 1, "default": 5, "description": "Max suggestions (default: 5)" }
-                            },
-                            "required": ["name"]
-                        }
+                    "required": ["workspace", "source_symbol", "status"]
+                }
+            },
+            {
+                "name": "translation_progress",
+                "description": "Get migration progress statistics",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "workspace": { "type": "string", "description": "Workspace name or id" }
                     },
-                    // ── Workspace tools ──────────────────────────────────
-                    {
-                        "name": "workspace_create",
-                        "description": "Create a workspace to load multiple codebases",
-                        "inputSchema": {
-                            "type": "object",
-                            "properties": {
-                                "name": { "type": "string", "description": "Workspace name (e.g., 'cpp-to-rust-migration')" }
-                            },
-                            "required": ["name"]
-                        }
+                    "required": ["workspace"]
+                }
+            },
+            {
+                "name": "translation_remaining",
+                "description": "List symbols not yet ported",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "workspace": { "type": "string", "description": "Workspace name or id" },
+                        "module": { "type": "string", "description": "Filter by module (optional)" }
                     },
-                    {
-                        "name": "workspace_add",
-                        "description": "Add a codebase to an existing workspace",
-                        "inputSchema": {
-                            "type": "object",
-                            "properties": {
-                                "workspace": { "type": "string", "description": "Workspace name or id" },
-                                "graph": { "type": "string", "description": "Name of a loaded graph to add" },
-                                "path": { "type": "string", "description": "Path label for this codebase" },
-                                "role": { "type": "string", "enum": ["source", "target", "reference", "comparison"], "description": "Role of this codebase" },
-                                "language": { "type": "string", "description": "Optional language hint" }
-                            },
-                            "required": ["workspace", "graph", "role"]
-                        }
+                    "required": ["workspace"]
+                }
+            },
+            // ── Invention 1: Enhanced Impact Analysis ────────────
+            {
+                "name": "impact_analyze",
+                "description": "Analyze the full impact of a proposed code change with blast radius and risk assessment",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "graph": { "type": "string", "description": "Graph name" },
+                        "unit_id": { "type": "integer", "description": "Target code unit ID" },
+                        "change_type": { "type": "string", "enum": ["signature", "behavior", "deletion", "rename", "move"], "default": "behavior" },
+                        "max_depth": { "type": "integer", "minimum": 1, "default": 5 }
                     },
-                    {
-                        "name": "workspace_list",
-                        "description": "List all contexts in a workspace",
-                        "inputSchema": {
-                            "type": "object",
-                            "properties": {
-                                "workspace": { "type": "string", "description": "Workspace name or id" }
-                            },
-                            "required": ["workspace"]
-                        }
+                    "required": ["unit_id"]
+                }
+            },
+            {
+                "name": "impact_path",
+                "description": "Find the impact path between two code units",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "graph": { "type": "string", "description": "Graph name" },
+                        "from": { "type": "integer", "description": "Source unit ID" },
+                        "to": { "type": "integer", "description": "Target unit ID" }
                     },
-                    {
-                        "name": "workspace_query",
-                        "description": "Search across all codebases in workspace",
-                        "inputSchema": {
-                            "type": "object",
-                            "properties": {
-                                "workspace": { "type": "string", "description": "Workspace name or id" },
-                                "query": { "type": "string", "description": "Search query" },
-                                "roles": { "type": "array", "items": { "type": "string" }, "description": "Filter by role (optional)" }
-                            },
-                            "required": ["workspace", "query"]
-                        }
+                    "required": ["from", "to"]
+                }
+            },
+            // ── Invention 2: Enhanced Code Prophecy ──────────────
+            {
+                "name": "prophecy",
+                "description": "Predict the future of a code unit based on history, complexity, and dependencies",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "graph": { "type": "string", "description": "Graph name" },
+                        "unit_id": { "type": "integer", "description": "Code unit ID to predict" }
                     },
-                    {
-                        "name": "workspace_compare",
-                        "description": "Compare a symbol between source and target",
-                        "inputSchema": {
-                            "type": "object",
-                            "properties": {
-                                "workspace": { "type": "string", "description": "Workspace name or id" },
-                                "symbol": { "type": "string", "description": "Symbol to compare" }
-                            },
-                            "required": ["workspace", "symbol"]
-                        }
+                    "required": ["unit_id"]
+                }
+            },
+            {
+                "name": "prophecy_if",
+                "description": "What-if scenario: predict impact of a hypothetical change",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "graph": { "type": "string", "description": "Graph name" },
+                        "unit_id": { "type": "integer", "description": "Code unit ID" },
+                        "change_type": { "type": "string", "enum": ["signature", "behavior", "deletion", "rename", "move"], "default": "behavior" }
                     },
-                    {
-                        "name": "workspace_xref",
-                        "description": "Find where symbol exists/doesn't exist across contexts",
-                        "inputSchema": {
-                            "type": "object",
-                            "properties": {
-                                "workspace": { "type": "string", "description": "Workspace name or id" },
-                                "symbol": { "type": "string", "description": "Symbol to find" }
-                            },
-                            "required": ["workspace", "symbol"]
-                        }
+                    "required": ["unit_id"]
+                }
+            },
+            // ── Invention 3: Regression Oracle ───────────────────
+            {
+                "name": "regression_predict",
+                "description": "Predict which tests are most likely affected by a change",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "graph": { "type": "string", "description": "Graph name" },
+                        "unit_id": { "type": "integer", "description": "Changed code unit ID" },
+                        "max_depth": { "type": "integer", "minimum": 1, "default": 5 }
                     },
-                    // ── Translation tools ────────────────────────────────
-                    {
-                        "name": "translation_record",
-                        "description": "Record source→target symbol mapping",
-                        "inputSchema": {
-                            "type": "object",
-                            "properties": {
-                                "workspace": { "type": "string", "description": "Workspace name or id" },
-                                "source_symbol": { "type": "string", "description": "Symbol in source codebase" },
-                                "target_symbol": { "type": "string", "description": "Symbol in target (null if not ported)" },
-                                "status": { "type": "string", "enum": ["not_started", "in_progress", "ported", "verified", "skipped"], "description": "Porting status" },
-                                "notes": { "type": "string", "description": "Optional notes" }
-                            },
-                            "required": ["workspace", "source_symbol", "status"]
-                        }
+                    "required": ["unit_id"]
+                }
+            },
+            {
+                "name": "regression_minimal",
+                "description": "Get the minimal test set needed for a change",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "graph": { "type": "string", "description": "Graph name" },
+                        "unit_id": { "type": "integer", "description": "Changed code unit ID" },
+                        "threshold": { "type": "number", "description": "Minimum probability threshold (0.0-1.0)", "default": 0.5 }
                     },
-                    {
-                        "name": "translation_progress",
-                        "description": "Get migration progress statistics",
-                        "inputSchema": {
-                            "type": "object",
-                            "properties": {
-                                "workspace": { "type": "string", "description": "Workspace name or id" }
-                            },
-                            "required": ["workspace"]
-                        }
+                    "required": ["unit_id"]
+                }
+            },
+            // ── Invention 4: Citation Engine ─────────────────────
+            {
+                "name": "codebase_ground_claim",
+                "description": "Ground a claim with full citations including file locations and code snippets",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "graph": { "type": "string", "description": "Graph name" },
+                        "claim": { "type": "string", "description": "The claim to verify and cite" }
                     },
-                    {
-                        "name": "translation_remaining",
-                        "description": "List symbols not yet ported",
-                        "inputSchema": {
-                            "type": "object",
-                            "properties": {
-                                "workspace": { "type": "string", "description": "Workspace name or id" },
-                                "module": { "type": "string", "description": "Filter by module (optional)" }
-                            },
-                            "required": ["workspace"]
-                        }
+                    "required": ["claim"]
+                }
+            },
+            {
+                "name": "codebase_cite",
+                "description": "Get a citation for a specific code unit",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "graph": { "type": "string", "description": "Graph name" },
+                        "unit_id": { "type": "integer", "description": "Code unit ID to cite" }
                     },
-                    // ── Invention 1: Enhanced Impact Analysis ────────────
-                    {
-                        "name": "impact_analyze",
-                        "description": "Analyze the full impact of a proposed code change with blast radius and risk assessment",
-                        "inputSchema": {
-                            "type": "object",
-                            "properties": {
-                                "graph": { "type": "string", "description": "Graph name" },
-                                "unit_id": { "type": "integer", "description": "Target code unit ID" },
-                                "change_type": { "type": "string", "enum": ["signature", "behavior", "deletion", "rename", "move"], "default": "behavior" },
-                                "max_depth": { "type": "integer", "minimum": 1, "default": 5 }
-                            },
-                            "required": ["unit_id"]
-                        }
+                    "required": ["unit_id"]
+                }
+            },
+            // ── Invention 5: Hallucination Detector ──────────────
+            {
+                "name": "hallucination_check",
+                "description": "Check AI-generated output for hallucinations about code",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "graph": { "type": "string", "description": "Graph name" },
+                        "output": { "type": "string", "description": "AI-generated text to check" }
                     },
-                    {
-                        "name": "impact_path",
-                        "description": "Find the impact path between two code units",
-                        "inputSchema": {
-                            "type": "object",
-                            "properties": {
-                                "graph": { "type": "string", "description": "Graph name" },
-                                "from": { "type": "integer", "description": "Source unit ID" },
-                                "to": { "type": "integer", "description": "Target unit ID" }
-                            },
-                            "required": ["from", "to"]
-                        }
+                    "required": ["output"]
+                }
+            },
+            // ── Invention 6: Truth Maintenance ───────────────────
+            {
+                "name": "truth_register",
+                "description": "Register a truth claim for ongoing maintenance",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "graph": { "type": "string", "description": "Graph name" },
+                        "claim": { "type": "string", "description": "The truth claim to maintain" }
                     },
-                    // ── Invention 2: Enhanced Code Prophecy ──────────────
-                    {
-                        "name": "prophecy",
-                        "description": "Predict the future of a code unit based on history, complexity, and dependencies",
-                        "inputSchema": {
-                            "type": "object",
-                            "properties": {
-                                "graph": { "type": "string", "description": "Graph name" },
-                                "unit_id": { "type": "integer", "description": "Code unit ID to predict" }
-                            },
-                            "required": ["unit_id"]
-                        }
+                    "required": ["claim"]
+                }
+            },
+            {
+                "name": "truth_check",
+                "description": "Check if a registered truth is still valid",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "graph": { "type": "string", "description": "Graph name" },
+                        "claim": { "type": "string", "description": "The truth claim to check" }
                     },
-                    {
-                        "name": "prophecy_if",
-                        "description": "What-if scenario: predict impact of a hypothetical change",
-                        "inputSchema": {
-                            "type": "object",
-                            "properties": {
-                                "graph": { "type": "string", "description": "Graph name" },
-                                "unit_id": { "type": "integer", "description": "Code unit ID" },
-                                "change_type": { "type": "string", "enum": ["signature", "behavior", "deletion", "rename", "move"], "default": "behavior" }
-                            },
-                            "required": ["unit_id"]
-                        }
+                    "required": ["claim"]
+                }
+            },
+            // ── Invention 7: Concept Navigation ──────────────────
+            {
+                "name": "concept_find",
+                "description": "Find code implementing a concept (e.g., authentication, payment)",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "graph": { "type": "string", "description": "Graph name" },
+                        "concept": { "type": "string", "description": "Concept to find (e.g., 'authentication', 'payment')" }
                     },
-                    // ── Invention 3: Regression Oracle ───────────────────
-                    {
-                        "name": "regression_predict",
-                        "description": "Predict which tests are most likely affected by a change",
-                        "inputSchema": {
-                            "type": "object",
-                            "properties": {
-                                "graph": { "type": "string", "description": "Graph name" },
-                                "unit_id": { "type": "integer", "description": "Changed code unit ID" },
-                                "max_depth": { "type": "integer", "minimum": 1, "default": 5 }
-                            },
-                            "required": ["unit_id"]
-                        }
+                    "required": ["concept"]
+                }
+            },
+            {
+                "name": "concept_map",
+                "description": "Map all detected concepts in the codebase",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "graph": { "type": "string", "description": "Graph name" }
+                    }
+                }
+            },
+            {
+                "name": "concept_explain",
+                "description": "Explain how a concept is implemented with details",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "graph": { "type": "string", "description": "Graph name" },
+                        "concept": { "type": "string", "description": "Concept to explain" }
                     },
-                    {
-                        "name": "regression_minimal",
-                        "description": "Get the minimal test set needed for a change",
-                        "inputSchema": {
-                            "type": "object",
-                            "properties": {
-                                "graph": { "type": "string", "description": "Graph name" },
-                                "unit_id": { "type": "integer", "description": "Changed code unit ID" },
-                                "threshold": { "type": "number", "description": "Minimum probability threshold (0.0-1.0)", "default": 0.5 }
-                            },
-                            "required": ["unit_id"]
-                        }
+                    "required": ["concept"]
+                }
+            },
+            // ── Invention 8: Architecture Inference ──────────────
+            {
+                "name": "architecture_infer",
+                "description": "Infer the architecture pattern of the codebase",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "graph": { "type": "string", "description": "Graph name" }
+                    }
+                }
+            },
+            {
+                "name": "architecture_validate",
+                "description": "Validate the codebase against its inferred architecture",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "graph": { "type": "string", "description": "Graph name" }
+                    }
+                }
+            },
+            // ── Invention 9: Semantic Search ─────────────────────
+            {
+                "name": "search_semantic",
+                "description": "Natural-language semantic search across the codebase",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "graph": { "type": "string", "description": "Graph name" },
+                        "query": { "type": "string", "description": "Natural-language search query" },
+                        "top_k": { "type": "integer", "minimum": 1, "default": 10 }
                     },
-                    // ── Invention 4: Citation Engine ─────────────────────
-                    {
-                        "name": "codebase_ground_claim",
-                        "description": "Ground a claim with full citations including file locations and code snippets",
-                        "inputSchema": {
-                            "type": "object",
-                            "properties": {
-                                "graph": { "type": "string", "description": "Graph name" },
-                                "claim": { "type": "string", "description": "The claim to verify and cite" }
-                            },
-                            "required": ["claim"]
-                        }
+                    "required": ["query"]
+                }
+            },
+            {
+                "name": "search_similar",
+                "description": "Find code units similar to a given unit",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "graph": { "type": "string", "description": "Graph name" },
+                        "unit_id": { "type": "integer", "description": "Unit ID to find similar units for" },
+                        "top_k": { "type": "integer", "minimum": 1, "default": 10 }
                     },
-                    {
-                        "name": "codebase_cite",
-                        "description": "Get a citation for a specific code unit",
-                        "inputSchema": {
-                            "type": "object",
-                            "properties": {
-                                "graph": { "type": "string", "description": "Graph name" },
-                                "unit_id": { "type": "integer", "description": "Code unit ID to cite" }
-                            },
-                            "required": ["unit_id"]
-                        }
+                    "required": ["unit_id"]
+                }
+            },
+            {
+                "name": "search_explain",
+                "description": "Explain why a unit matched a search query",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "graph": { "type": "string", "description": "Graph name" },
+                        "unit_id": { "type": "integer", "description": "Unit ID" },
+                        "query": { "type": "string", "description": "The search query" }
                     },
-                    // ── Invention 5: Hallucination Detector ──────────────
-                    {
-                        "name": "hallucination_check",
-                        "description": "Check AI-generated output for hallucinations about code",
-                        "inputSchema": {
-                            "type": "object",
-                            "properties": {
-                                "graph": { "type": "string", "description": "Graph name" },
-                                "output": { "type": "string", "description": "AI-generated text to check" }
-                            },
-                            "required": ["output"]
-                        }
+                    "required": ["unit_id", "query"]
+                }
+            },
+            // ── Invention 10: Multi-Codebase Compare ─────────────
+            {
+                "name": "compare_codebases",
+                "description": "Full structural, conceptual, and pattern comparison between two codebases in a workspace",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "workspace": { "type": "string", "description": "Workspace name or id" }
                     },
-                    // ── Invention 6: Truth Maintenance ───────────────────
-                    {
-                        "name": "truth_register",
-                        "description": "Register a truth claim for ongoing maintenance",
-                        "inputSchema": {
-                            "type": "object",
-                            "properties": {
-                                "graph": { "type": "string", "description": "Graph name" },
-                                "claim": { "type": "string", "description": "The truth claim to maintain" }
-                            },
-                            "required": ["claim"]
-                        }
+                    "required": ["workspace"]
+                }
+            },
+            {
+                "name": "compare_concept",
+                "description": "Compare how a concept is implemented across two codebases",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "workspace": { "type": "string", "description": "Workspace name or id" },
+                        "concept": { "type": "string", "description": "Concept to compare (e.g., 'authentication')" }
                     },
-                    {
-                        "name": "truth_check",
-                        "description": "Check if a registered truth is still valid",
-                        "inputSchema": {
-                            "type": "object",
-                            "properties": {
-                                "graph": { "type": "string", "description": "Graph name" },
-                                "claim": { "type": "string", "description": "The truth claim to check" }
-                            },
-                            "required": ["claim"]
-                        }
+                    "required": ["workspace", "concept"]
+                }
+            },
+            {
+                "name": "compare_migrate",
+                "description": "Generate a migration plan from source to target codebase",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "workspace": { "type": "string", "description": "Workspace name or id" }
                     },
-                    // ── Invention 7: Concept Navigation ──────────────────
-                    {
-                        "name": "concept_find",
-                        "description": "Find code implementing a concept (e.g., authentication, payment)",
-                        "inputSchema": {
-                            "type": "object",
-                            "properties": {
-                                "graph": { "type": "string", "description": "Graph name" },
-                                "concept": { "type": "string", "description": "Concept to find (e.g., 'authentication', 'payment')" }
-                            },
-                            "required": ["concept"]
-                        }
+                    "required": ["workspace"]
+                }
+            },
+            // ── Invention 11: Version Archaeology ────────────────
+            {
+                "name": "archaeology_node",
+                "description": "Investigate the full history and evolution of a code unit",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "graph": { "type": "string", "description": "Graph name" },
+                        "unit_id": { "type": "integer", "description": "Code unit ID to investigate" }
                     },
-                    {
-                        "name": "concept_map",
-                        "description": "Map all detected concepts in the codebase",
-                        "inputSchema": {
-                            "type": "object",
-                            "properties": {
-                                "graph": { "type": "string", "description": "Graph name" }
-                            }
-                        }
+                    "required": ["unit_id"]
+                }
+            },
+            {
+                "name": "archaeology_why",
+                "description": "Explain why code looks the way it does based on its history",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "graph": { "type": "string", "description": "Graph name" },
+                        "unit_id": { "type": "integer", "description": "Code unit ID" }
                     },
-                    {
-                        "name": "concept_explain",
-                        "description": "Explain how a concept is implemented with details",
-                        "inputSchema": {
-                            "type": "object",
-                            "properties": {
-                                "graph": { "type": "string", "description": "Graph name" },
-                                "concept": { "type": "string", "description": "Concept to explain" }
-                            },
-                            "required": ["concept"]
-                        }
+                    "required": ["unit_id"]
+                }
+            },
+            {
+                "name": "archaeology_when",
+                "description": "Get the timeline of changes for a code unit",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "graph": { "type": "string", "description": "Graph name" },
+                        "unit_id": { "type": "integer", "description": "Code unit ID" }
                     },
-                    // ── Invention 8: Architecture Inference ──────────────
-                    {
-                        "name": "architecture_infer",
-                        "description": "Infer the architecture pattern of the codebase",
-                        "inputSchema": {
-                            "type": "object",
-                            "properties": {
-                                "graph": { "type": "string", "description": "Graph name" }
-                            }
-                        }
+                    "required": ["unit_id"]
+                }
+            },
+            // ── Invention 12: Pattern Extraction ─────────────────
+            {
+                "name": "pattern_extract",
+                "description": "Extract all detected patterns from the codebase",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "graph": { "type": "string", "description": "Graph name" }
+                    }
+                }
+            },
+            {
+                "name": "pattern_check",
+                "description": "Check a code unit against detected patterns for violations",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "graph": { "type": "string", "description": "Graph name" },
+                        "unit_id": { "type": "integer", "description": "Code unit ID to check" }
                     },
-                    {
-                        "name": "architecture_validate",
-                        "description": "Validate the codebase against its inferred architecture",
-                        "inputSchema": {
-                            "type": "object",
-                            "properties": {
-                                "graph": { "type": "string", "description": "Graph name" }
-                            }
-                        }
+                    "required": ["unit_id"]
+                }
+            },
+            {
+                "name": "pattern_suggest",
+                "description": "Suggest patterns for new code based on file location",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "graph": { "type": "string", "description": "Graph name" },
+                        "file_path": { "type": "string", "description": "File path for pattern suggestions" }
                     },
-                    // ── Invention 9: Semantic Search ─────────────────────
-                    {
-                        "name": "search_semantic",
-                        "description": "Natural-language semantic search across the codebase",
-                        "inputSchema": {
-                            "type": "object",
-                            "properties": {
-                                "graph": { "type": "string", "description": "Graph name" },
-                                "query": { "type": "string", "description": "Natural-language search query" },
-                                "top_k": { "type": "integer", "minimum": 1, "default": 10 }
-                            },
-                            "required": ["query"]
-                        }
-                    },
-                    {
-                        "name": "search_similar",
-                        "description": "Find code units similar to a given unit",
-                        "inputSchema": {
-                            "type": "object",
-                            "properties": {
-                                "graph": { "type": "string", "description": "Graph name" },
-                                "unit_id": { "type": "integer", "description": "Unit ID to find similar units for" },
-                                "top_k": { "type": "integer", "minimum": 1, "default": 10 }
-                            },
-                            "required": ["unit_id"]
-                        }
-                    },
-                    {
-                        "name": "search_explain",
-                        "description": "Explain why a unit matched a search query",
-                        "inputSchema": {
-                            "type": "object",
-                            "properties": {
-                                "graph": { "type": "string", "description": "Graph name" },
-                                "unit_id": { "type": "integer", "description": "Unit ID" },
-                                "query": { "type": "string", "description": "The search query" }
-                            },
-                            "required": ["unit_id", "query"]
-                        }
-                    },
-                    // ── Invention 10: Multi-Codebase Compare ─────────────
-                    {
-                        "name": "compare_codebases",
-                        "description": "Full structural, conceptual, and pattern comparison between two codebases in a workspace",
-                        "inputSchema": {
-                            "type": "object",
-                            "properties": {
-                                "workspace": { "type": "string", "description": "Workspace name or id" }
-                            },
-                            "required": ["workspace"]
-                        }
-                    },
-                    {
-                        "name": "compare_concept",
-                        "description": "Compare how a concept is implemented across two codebases",
-                        "inputSchema": {
-                            "type": "object",
-                            "properties": {
-                                "workspace": { "type": "string", "description": "Workspace name or id" },
-                                "concept": { "type": "string", "description": "Concept to compare (e.g., 'authentication')" }
-                            },
-                            "required": ["workspace", "concept"]
-                        }
-                    },
-                    {
-                        "name": "compare_migrate",
-                        "description": "Generate a migration plan from source to target codebase",
-                        "inputSchema": {
-                            "type": "object",
-                            "properties": {
-                                "workspace": { "type": "string", "description": "Workspace name or id" }
-                            },
-                            "required": ["workspace"]
-                        }
-                    },
-                    // ── Invention 11: Version Archaeology ────────────────
-                    {
-                        "name": "archaeology_node",
-                        "description": "Investigate the full history and evolution of a code unit",
-                        "inputSchema": {
-                            "type": "object",
-                            "properties": {
-                                "graph": { "type": "string", "description": "Graph name" },
-                                "unit_id": { "type": "integer", "description": "Code unit ID to investigate" }
-                            },
-                            "required": ["unit_id"]
-                        }
-                    },
-                    {
-                        "name": "archaeology_why",
-                        "description": "Explain why code looks the way it does based on its history",
-                        "inputSchema": {
-                            "type": "object",
-                            "properties": {
-                                "graph": { "type": "string", "description": "Graph name" },
-                                "unit_id": { "type": "integer", "description": "Code unit ID" }
-                            },
-                            "required": ["unit_id"]
-                        }
-                    },
-                    {
-                        "name": "archaeology_when",
-                        "description": "Get the timeline of changes for a code unit",
-                        "inputSchema": {
-                            "type": "object",
-                            "properties": {
-                                "graph": { "type": "string", "description": "Graph name" },
-                                "unit_id": { "type": "integer", "description": "Code unit ID" }
-                            },
-                            "required": ["unit_id"]
-                        }
-                    },
-                    // ── Invention 12: Pattern Extraction ─────────────────
-                    {
-                        "name": "pattern_extract",
-                        "description": "Extract all detected patterns from the codebase",
-                        "inputSchema": {
-                            "type": "object",
-                            "properties": {
-                                "graph": { "type": "string", "description": "Graph name" }
-                            }
-                        }
-                    },
-                    {
-                        "name": "pattern_check",
-                        "description": "Check a code unit against detected patterns for violations",
-                        "inputSchema": {
-                            "type": "object",
-                            "properties": {
-                                "graph": { "type": "string", "description": "Graph name" },
-                                "unit_id": { "type": "integer", "description": "Code unit ID to check" }
-                            },
-                            "required": ["unit_id"]
-                        }
-                    },
-                    {
-                        "name": "pattern_suggest",
-                        "description": "Suggest patterns for new code based on file location",
-                        "inputSchema": {
-                            "type": "object",
-                            "properties": {
-                                "graph": { "type": "string", "description": "Graph name" },
-                                "file_path": { "type": "string", "description": "File path for pattern suggestions" }
-                            },
-                            "required": ["file_path"]
-                        }
-                    },
-                    // -- Invention 13: Code Resurrection --------------------
-                    { "name": "resurrect_search", "description": "Search for traces of deleted code", "inputSchema": { "type": "object", "properties": { "graph": { "type": "string", "description": "Graph name" }, "query": { "type": "string", "description": "Search query for deleted code traces" }, "max_results": { "type": "integer", "minimum": 1, "default": 10 } }, "required": ["query"] } },
-                    { "name": "resurrect_attempt", "description": "Attempt to reconstruct deleted code from traces", "inputSchema": { "type": "object", "properties": { "graph": { "type": "string", "description": "Graph name" }, "query": { "type": "string", "description": "Description of the code to resurrect" } }, "required": ["query"] } },
-                    { "name": "resurrect_verify", "description": "Verify a resurrection attempt is accurate", "inputSchema": { "type": "object", "properties": { "graph": { "type": "string", "description": "Graph name" }, "original_name": { "type": "string", "description": "Original name of the deleted code" }, "reconstructed": { "type": "string", "description": "Reconstructed code to verify" } }, "required": ["original_name", "reconstructed"] } },
-                    { "name": "resurrect_history", "description": "Get resurrection history for the codebase", "inputSchema": { "type": "object", "properties": { "graph": { "type": "string", "description": "Graph name" } } } },
-                    // -- Invention 14: Code Genetics -----------------------
-                    { "name": "genetics_dna", "description": "Extract the DNA (core patterns) of a code unit", "inputSchema": { "type": "object", "properties": { "graph": { "type": "string", "description": "Graph name" }, "unit_id": { "type": "integer", "description": "Code unit ID" } }, "required": ["unit_id"] } },
-                    { "name": "genetics_lineage", "description": "Trace the lineage of a code unit through evolution", "inputSchema": { "type": "object", "properties": { "graph": { "type": "string", "description": "Graph name" }, "unit_id": { "type": "integer", "description": "Code unit ID" }, "max_depth": { "type": "integer", "minimum": 1, "default": 10 } }, "required": ["unit_id"] } },
-                    { "name": "genetics_mutations", "description": "Detect mutations (unexpected changes) in code patterns", "inputSchema": { "type": "object", "properties": { "graph": { "type": "string", "description": "Graph name" }, "unit_id": { "type": "integer", "description": "Code unit ID" } }, "required": ["unit_id"] } },
-                    { "name": "genetics_diseases", "description": "Diagnose inherited code diseases (anti-patterns passed through lineage)", "inputSchema": { "type": "object", "properties": { "graph": { "type": "string", "description": "Graph name" }, "unit_id": { "type": "integer", "description": "Code unit ID" } }, "required": ["unit_id"] } },
-                    // -- Invention 15: Code Telepathy ----------------------
-                    { "name": "telepathy_connect", "description": "Establish telepathic connection between codebases", "inputSchema": { "type": "object", "properties": { "workspace": { "type": "string", "description": "Workspace name or id" }, "source_graph": { "type": "string", "description": "Source graph name" }, "target_graph": { "type": "string", "description": "Target graph name" } }, "required": ["workspace"] } },
-                    { "name": "telepathy_broadcast", "description": "Broadcast a code insight to connected codebases", "inputSchema": { "type": "object", "properties": { "workspace": { "type": "string", "description": "Workspace name or id" }, "insight": { "type": "string", "description": "The code insight to broadcast" }, "source_graph": { "type": "string", "description": "Source graph name" } }, "required": ["workspace", "insight"] } },
-                    { "name": "telepathy_listen", "description": "Listen for insights from connected codebases", "inputSchema": { "type": "object", "properties": { "workspace": { "type": "string", "description": "Workspace name or id" }, "target_graph": { "type": "string", "description": "Target graph name to listen from" } }, "required": ["workspace"] } },
-                    { "name": "telepathy_consensus", "description": "Find consensus patterns across connected codebases", "inputSchema": { "type": "object", "properties": { "workspace": { "type": "string", "description": "Workspace name or id" }, "concept": { "type": "string", "description": "Concept to find consensus on" } }, "required": ["workspace", "concept"] } },
-                    // -- Invention 16: Code Soul --------------------------
-                    { "name": "soul_extract", "description": "Extract the soul (essential purpose and values) of code", "inputSchema": { "type": "object", "properties": { "graph": { "type": "string", "description": "Graph name" }, "unit_id": { "type": "integer", "description": "Code unit ID" } }, "required": ["unit_id"] } },
-                    { "name": "soul_compare", "description": "Compare souls across code reincarnations", "inputSchema": { "type": "object", "properties": { "graph": { "type": "string", "description": "Graph name" }, "unit_id_a": { "type": "integer", "description": "First code unit ID" }, "unit_id_b": { "type": "integer", "description": "Second code unit ID" } }, "required": ["unit_id_a", "unit_id_b"] } },
-                    { "name": "soul_preserve", "description": "Preserve a code soul during rewrite", "inputSchema": { "type": "object", "properties": { "graph": { "type": "string", "description": "Graph name" }, "unit_id": { "type": "integer", "description": "Code unit ID" }, "new_language": { "type": "string", "description": "Target language for rewrite" } }, "required": ["unit_id"] } },
-                    { "name": "soul_reincarnate", "description": "Guide a soul to a new code manifestation", "inputSchema": { "type": "object", "properties": { "graph": { "type": "string", "description": "Graph name" }, "soul_id": { "type": "string", "description": "Soul identifier" }, "target_context": { "type": "string", "description": "Target context for reincarnation" } }, "required": ["soul_id", "target_context"] } },
-                    { "name": "soul_karma", "description": "Analyze the karma (positive/negative impact history) of code", "inputSchema": { "type": "object", "properties": { "graph": { "type": "string", "description": "Graph name" }, "unit_id": { "type": "integer", "description": "Code unit ID" } }, "required": ["unit_id"] } },
-                    // -- Invention 17: Code Omniscience --------------------
-                    { "name": "omniscience_search", "description": "Search across global code knowledge", "inputSchema": { "type": "object", "properties": { "query": { "type": "string", "description": "Search query" }, "languages": { "type": "array", "items": { "type": "string" }, "description": "Filter by languages" }, "max_results": { "type": "integer", "minimum": 1, "default": 10 } }, "required": ["query"] } },
-                    { "name": "omniscience_best", "description": "Find the best implementation of a concept globally", "inputSchema": { "type": "object", "properties": { "capability": { "type": "string", "description": "Capability to find best implementation for" }, "criteria": { "type": "array", "items": { "type": "string" }, "description": "Evaluation criteria" } }, "required": ["capability"] } },
-                    { "name": "omniscience_census", "description": "Global code census for a concept", "inputSchema": { "type": "object", "properties": { "concept": { "type": "string", "description": "Concept to census" }, "languages": { "type": "array", "items": { "type": "string" }, "description": "Filter by languages" } }, "required": ["concept"] } },
-                    { "name": "omniscience_vuln", "description": "Scan for known vulnerability patterns", "inputSchema": { "type": "object", "properties": { "graph": { "type": "string", "description": "Graph name" }, "pattern": { "type": "string", "description": "Vulnerability pattern to scan for" }, "cve": { "type": "string", "description": "CVE identifier to check" } } } },
-                    { "name": "omniscience_trend", "description": "Find emerging or declining code patterns", "inputSchema": { "type": "object", "properties": { "domain": { "type": "string", "description": "Domain to analyze trends in" }, "threshold": { "type": "number", "default": 0.5 } }, "required": ["domain"] } },
-                    { "name": "omniscience_compare", "description": "Compare your code to global best practices", "inputSchema": { "type": "object", "properties": { "graph": { "type": "string", "description": "Graph name" }, "unit_id": { "type": "integer", "description": "Code unit ID to compare" } }, "required": ["unit_id"] } },
-                    { "name": "omniscience_api_usage", "description": "Find all usages of an API globally", "inputSchema": { "type": "object", "properties": { "api": { "type": "string", "description": "API name to search for" }, "method": { "type": "string", "description": "Specific method within the API" } }, "required": ["api"] } },
-                    { "name": "omniscience_solve", "description": "Find code that solves a specific problem", "inputSchema": { "type": "object", "properties": { "problem": { "type": "string", "description": "Problem description to solve" }, "languages": { "type": "array", "items": { "type": "string" }, "description": "Preferred languages" }, "max_results": { "type": "integer", "minimum": 1, "default": 5 } }, "required": ["problem"] } }
-                ]);
+                    "required": ["file_path"]
+                }
+            },
+            // -- Invention 13: Code Resurrection --------------------
+            { "name": "resurrect_search", "description": "Search for traces of deleted code", "inputSchema": { "type": "object", "properties": { "graph": { "type": "string", "description": "Graph name" }, "query": { "type": "string", "description": "Search query for deleted code traces" }, "max_results": { "type": "integer", "minimum": 1, "default": 10 } }, "required": ["query"] } },
+            { "name": "resurrect_attempt", "description": "Attempt to reconstruct deleted code from traces", "inputSchema": { "type": "object", "properties": { "graph": { "type": "string", "description": "Graph name" }, "query": { "type": "string", "description": "Description of the code to resurrect" } }, "required": ["query"] } },
+            { "name": "resurrect_verify", "description": "Verify a resurrection attempt is accurate", "inputSchema": { "type": "object", "properties": { "graph": { "type": "string", "description": "Graph name" }, "original_name": { "type": "string", "description": "Original name of the deleted code" }, "reconstructed": { "type": "string", "description": "Reconstructed code to verify" } }, "required": ["original_name", "reconstructed"] } },
+            { "name": "resurrect_history", "description": "Get resurrection history for the codebase", "inputSchema": { "type": "object", "properties": { "graph": { "type": "string", "description": "Graph name" } } } },
+            // -- Invention 14: Code Genetics -----------------------
+            { "name": "genetics_dna", "description": "Extract the DNA (core patterns) of a code unit", "inputSchema": { "type": "object", "properties": { "graph": { "type": "string", "description": "Graph name" }, "unit_id": { "type": "integer", "description": "Code unit ID" } }, "required": ["unit_id"] } },
+            { "name": "genetics_lineage", "description": "Trace the lineage of a code unit through evolution", "inputSchema": { "type": "object", "properties": { "graph": { "type": "string", "description": "Graph name" }, "unit_id": { "type": "integer", "description": "Code unit ID" }, "max_depth": { "type": "integer", "minimum": 1, "default": 10 } }, "required": ["unit_id"] } },
+            { "name": "genetics_mutations", "description": "Detect mutations (unexpected changes) in code patterns", "inputSchema": { "type": "object", "properties": { "graph": { "type": "string", "description": "Graph name" }, "unit_id": { "type": "integer", "description": "Code unit ID" } }, "required": ["unit_id"] } },
+            { "name": "genetics_diseases", "description": "Diagnose inherited code diseases (anti-patterns passed through lineage)", "inputSchema": { "type": "object", "properties": { "graph": { "type": "string", "description": "Graph name" }, "unit_id": { "type": "integer", "description": "Code unit ID" } }, "required": ["unit_id"] } },
+            // -- Invention 15: Code Telepathy ----------------------
+            { "name": "telepathy_connect", "description": "Establish telepathic connection between codebases", "inputSchema": { "type": "object", "properties": { "workspace": { "type": "string", "description": "Workspace name or id" }, "source_graph": { "type": "string", "description": "Source graph name" }, "target_graph": { "type": "string", "description": "Target graph name" } }, "required": ["workspace"] } },
+            { "name": "telepathy_broadcast", "description": "Broadcast a code insight to connected codebases", "inputSchema": { "type": "object", "properties": { "workspace": { "type": "string", "description": "Workspace name or id" }, "insight": { "type": "string", "description": "The code insight to broadcast" }, "source_graph": { "type": "string", "description": "Source graph name" } }, "required": ["workspace", "insight"] } },
+            { "name": "telepathy_listen", "description": "Listen for insights from connected codebases", "inputSchema": { "type": "object", "properties": { "workspace": { "type": "string", "description": "Workspace name or id" }, "target_graph": { "type": "string", "description": "Target graph name to listen from" } }, "required": ["workspace"] } },
+            { "name": "telepathy_consensus", "description": "Find consensus patterns across connected codebases", "inputSchema": { "type": "object", "properties": { "workspace": { "type": "string", "description": "Workspace name or id" }, "concept": { "type": "string", "description": "Concept to find consensus on" } }, "required": ["workspace", "concept"] } },
+            // -- Invention 16: Code Soul --------------------------
+            { "name": "soul_extract", "description": "Extract the soul (essential purpose and values) of code", "inputSchema": { "type": "object", "properties": { "graph": { "type": "string", "description": "Graph name" }, "unit_id": { "type": "integer", "description": "Code unit ID" } }, "required": ["unit_id"] } },
+            { "name": "soul_compare", "description": "Compare souls across code reincarnations", "inputSchema": { "type": "object", "properties": { "graph": { "type": "string", "description": "Graph name" }, "unit_id_a": { "type": "integer", "description": "First code unit ID" }, "unit_id_b": { "type": "integer", "description": "Second code unit ID" } }, "required": ["unit_id_a", "unit_id_b"] } },
+            { "name": "soul_preserve", "description": "Preserve a code soul during rewrite", "inputSchema": { "type": "object", "properties": { "graph": { "type": "string", "description": "Graph name" }, "unit_id": { "type": "integer", "description": "Code unit ID" }, "new_language": { "type": "string", "description": "Target language for rewrite" } }, "required": ["unit_id"] } },
+            { "name": "soul_reincarnate", "description": "Guide a soul to a new code manifestation", "inputSchema": { "type": "object", "properties": { "graph": { "type": "string", "description": "Graph name" }, "soul_id": { "type": "string", "description": "Soul identifier" }, "target_context": { "type": "string", "description": "Target context for reincarnation" } }, "required": ["soul_id", "target_context"] } },
+            { "name": "soul_karma", "description": "Analyze the karma (positive/negative impact history) of code", "inputSchema": { "type": "object", "properties": { "graph": { "type": "string", "description": "Graph name" }, "unit_id": { "type": "integer", "description": "Code unit ID" } }, "required": ["unit_id"] } },
+            // -- Invention 17: Code Omniscience --------------------
+            { "name": "omniscience_search", "description": "Search across global code knowledge", "inputSchema": { "type": "object", "properties": { "query": { "type": "string", "description": "Search query" }, "languages": { "type": "array", "items": { "type": "string" }, "description": "Filter by languages" }, "max_results": { "type": "integer", "minimum": 1, "default": 10 } }, "required": ["query"] } },
+            { "name": "omniscience_best", "description": "Find the best implementation of a concept globally", "inputSchema": { "type": "object", "properties": { "capability": { "type": "string", "description": "Capability to find best implementation for" }, "criteria": { "type": "array", "items": { "type": "string" }, "description": "Evaluation criteria" } }, "required": ["capability"] } },
+            { "name": "omniscience_census", "description": "Global code census for a concept", "inputSchema": { "type": "object", "properties": { "concept": { "type": "string", "description": "Concept to census" }, "languages": { "type": "array", "items": { "type": "string" }, "description": "Filter by languages" } }, "required": ["concept"] } },
+            { "name": "omniscience_vuln", "description": "Scan for known vulnerability patterns", "inputSchema": { "type": "object", "properties": { "graph": { "type": "string", "description": "Graph name" }, "pattern": { "type": "string", "description": "Vulnerability pattern to scan for" }, "cve": { "type": "string", "description": "CVE identifier to check" } } } },
+            { "name": "omniscience_trend", "description": "Find emerging or declining code patterns", "inputSchema": { "type": "object", "properties": { "domain": { "type": "string", "description": "Domain to analyze trends in" }, "threshold": { "type": "number", "default": 0.5 } }, "required": ["domain"] } },
+            { "name": "omniscience_compare", "description": "Compare your code to global best practices", "inputSchema": { "type": "object", "properties": { "graph": { "type": "string", "description": "Graph name" }, "unit_id": { "type": "integer", "description": "Code unit ID to compare" } }, "required": ["unit_id"] } },
+            { "name": "omniscience_api_usage", "description": "Find all usages of an API globally", "inputSchema": { "type": "object", "properties": { "api": { "type": "string", "description": "API name to search for" }, "method": { "type": "string", "description": "Specific method within the API" } }, "required": ["api"] } },
+            { "name": "omniscience_solve", "description": "Find code that solves a specific problem", "inputSchema": { "type": "object", "properties": { "problem": { "type": "string", "description": "Problem description to solve" }, "languages": { "type": "array", "items": { "type": "string" }, "description": "Preferred languages" }, "max_results": { "type": "integer", "minimum": 1, "default": 5 } }, "required": ["problem"] } }
+        ]);
         if let Value::Array(ref mut arr) = tools_array {
             inject_token_conservation_params(arr);
         }

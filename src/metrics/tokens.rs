@@ -31,7 +31,13 @@ impl Layer {
 
     /// All layers in order from cheapest to most expensive.
     pub fn all() -> &'static [Layer] {
-        &[Layer::Cache, Layer::Index, Layer::Scoped, Layer::Delta, Layer::Full]
+        &[
+            Layer::Cache,
+            Layer::Index,
+            Layer::Scoped,
+            Layer::Delta,
+            Layer::Full,
+        ]
     }
 }
 

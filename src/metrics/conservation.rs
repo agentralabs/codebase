@@ -36,7 +36,10 @@ impl ConservationVerdict {
 
     /// Whether this verdict meets the minimum target (Good or better).
     pub fn meets_target(&self) -> bool {
-        matches!(self, ConservationVerdict::Excellent | ConservationVerdict::Good)
+        matches!(
+            self,
+            ConservationVerdict::Excellent | ConservationVerdict::Good
+        )
     }
 }
 
@@ -97,10 +100,12 @@ pub fn generate_report(metrics: &TokenMetrics, audit_log: &AuditLog) -> Conserva
         recommendations.push("Use IdsOnly or Summary intents instead of Full".to_string());
     }
     if score < 0.5 {
-        recommendations.push("Enable delta queries to avoid re-fetching unchanged data".to_string());
+        recommendations
+            .push("Enable delta queries to avoid re-fetching unchanged data".to_string());
     }
     if avg_tokens_per_query > 100.0 {
-        recommendations.push("Average tokens per query is high; consider scoped extraction".to_string());
+        recommendations
+            .push("Average tokens per query is high; consider scoped extraction".to_string());
     }
 
     ConservationReport {
@@ -124,32 +129,56 @@ mod tests {
     use crate::query::ExtractionIntent;
 
     fn make_entry(layer: Layer, used: u64, saved: u64, cache_hit: bool) -> AuditEntry {
-        AuditEntry::new("test_tool", layer, used, saved, cache_hit, ExtractionIntent::IdsOnly, 100, 10)
+        AuditEntry::new(
+            "test_tool",
+            layer,
+            used,
+            saved,
+            cache_hit,
+            ExtractionIntent::IdsOnly,
+            100,
+            10,
+        )
     }
 
     #[test]
     fn test_verdict_excellent() {
-        assert_eq!(ConservationVerdict::from_score(0.95), ConservationVerdict::Excellent);
+        assert_eq!(
+            ConservationVerdict::from_score(0.95),
+            ConservationVerdict::Excellent
+        );
     }
 
     #[test]
     fn test_verdict_good() {
-        assert_eq!(ConservationVerdict::from_score(0.75), ConservationVerdict::Good);
+        assert_eq!(
+            ConservationVerdict::from_score(0.75),
+            ConservationVerdict::Good
+        );
     }
 
     #[test]
     fn test_verdict_fair() {
-        assert_eq!(ConservationVerdict::from_score(0.55), ConservationVerdict::Fair);
+        assert_eq!(
+            ConservationVerdict::from_score(0.55),
+            ConservationVerdict::Fair
+        );
     }
 
     #[test]
     fn test_verdict_poor() {
-        assert_eq!(ConservationVerdict::from_score(0.35), ConservationVerdict::Poor);
+        assert_eq!(
+            ConservationVerdict::from_score(0.35),
+            ConservationVerdict::Poor
+        );
     }
 
     #[test]
     fn test_verdict_wasteful() {
-        assert_eq!(ConservationVerdict::from_score(0.1), ConservationVerdict::Wasteful);
+        assert_eq!(
+            ConservationVerdict::from_score(0.1),
+            ConservationVerdict::Wasteful
+        );
     }
 
     #[test]

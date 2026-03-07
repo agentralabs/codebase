@@ -116,10 +116,21 @@ mod tests {
 
     #[test]
     fn test_estimated_tokens_ordering() {
-        assert!(ExtractionIntent::Exists.estimated_tokens() < ExtractionIntent::IdsOnly.estimated_tokens());
-        assert!(ExtractionIntent::IdsOnly.estimated_tokens() < ExtractionIntent::Summary.estimated_tokens());
-        assert!(ExtractionIntent::Summary.estimated_tokens() < ExtractionIntent::Fields.estimated_tokens());
-        assert!(ExtractionIntent::Fields.estimated_tokens() < ExtractionIntent::Full.estimated_tokens());
+        assert!(
+            ExtractionIntent::Exists.estimated_tokens()
+                < ExtractionIntent::IdsOnly.estimated_tokens()
+        );
+        assert!(
+            ExtractionIntent::IdsOnly.estimated_tokens()
+                < ExtractionIntent::Summary.estimated_tokens()
+        );
+        assert!(
+            ExtractionIntent::Summary.estimated_tokens()
+                < ExtractionIntent::Fields.estimated_tokens()
+        );
+        assert!(
+            ExtractionIntent::Fields.estimated_tokens() < ExtractionIntent::Full.estimated_tokens()
+        );
     }
 
     #[test]

@@ -5,5 +5,5 @@ pub mod pagination;
 
 pub use budget::TokenBudget;
 pub use delta::{ChangeRecord, ChangeType, DeltaResult, VersionedState};
-pub use intent::{ExtractionIntent, ScopedResult, Scopeable, apply_intent};
+pub use intent::{apply_intent, ExtractionIntent, Scopeable, ScopedResult};
 pub use pagination::CursorPage;

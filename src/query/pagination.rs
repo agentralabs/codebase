@@ -22,9 +22,7 @@ impl<T: Clone> CursorPage<T> {
     /// If `cursor` is `None`, starts from the beginning.
     /// `limit` controls how many items to include in this page.
     pub fn from_slice(data: &[T], cursor: Option<&str>, limit: usize) -> Self {
-        let offset = cursor
-            .and_then(|c| c.parse::<usize>().ok())
-            .unwrap_or(0);
+        let offset = cursor.and_then(|c| c.parse::<usize>().ok()).unwrap_or(0);
 
         let total_len = data.len();
 

@@ -130,12 +130,22 @@ impl AuditLog {
 
     /// Total tokens used across all entries.
     pub fn total_tokens_used(&self) -> u64 {
-        self.entries.lock().unwrap().iter().map(|e| e.tokens_used).sum()
+        self.entries
+            .lock()
+            .unwrap()
+            .iter()
+            .map(|e| e.tokens_used)
+            .sum()
     }
 
     /// Total tokens saved across all entries.
     pub fn total_tokens_saved(&self) -> u64 {
-        self.entries.lock().unwrap().iter().map(|e| e.tokens_saved).sum()
+        self.entries
+            .lock()
+            .unwrap()
+            .iter()
+            .map(|e| e.tokens_saved)
+            .sum()
     }
 
     /// Overall conservation ratio.

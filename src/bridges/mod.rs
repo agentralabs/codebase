@@ -1,5 +1,5 @@
-pub mod traits;
 pub mod noop;
+pub mod traits;
 
-pub use traits::*;
 pub use noop::NoOpBridges;
+pub use traits::*;
