@@ -78,7 +78,7 @@ impl StorageBudgetMode {
     name = "acb",
     about = "AgenticCodebase \u{2014} Semantic code compiler for AI agents",
     long_about = "AgenticCodebase compiles multi-language codebases into navigable concept \
-                   graphs that AI agents can query. Supports Python, Rust, TypeScript, and Go.\n\n\
+                   graphs that AI agents can query. Supports Python, Rust, TypeScript, JavaScript, Go, C++, Java, and C#.\n\n\
                    Quick start:\n\
                    \x20 acb compile ./my-project            # build a graph\n\
                    \x20 acb info my-project.acb             # inspect the graph\n\
@@ -127,7 +127,7 @@ pub enum Command {
     /// Compile a repository into an .acb graph file.
     ///
     /// Recursively scans the source directory, parses all supported languages
-    /// (Python, Rust, TypeScript, Go), performs semantic analysis, and writes
+    /// (Python, Rust, TypeScript, JavaScript, Go, C++, Java, C#), performs semantic analysis, and writes
     /// a compact binary .acb file for fast querying.
     ///
     /// Examples:

@@ -766,6 +766,91 @@ fn test_full_analysis_go() {
 }
 
 #[test]
+fn test_full_analysis_java() {
+    let units = parse_test_file("java/com/example/core/Worker.java");
+    let analyzer = SemanticAnalyzer::new();
+    let graph = analyzer
+        .analyze(units, &AnalyzeOptions::default())
+        .expect("analysis failed");
+
+    assert!(graph.unit_count() > 0);
+}
+
+#[test]
+fn test_full_analysis_java_edge_categories() {
+    let parser = Parser::new();
+    let testdata = testdata_path("java");
+    let opts = agentic_codebase::parse::ParseOptions {
+        languages: vec![Language::Java],
+        ..Default::default()
+    };
+    let parsed = parser
+        .parse_directory(&testdata, &opts)
+        .expect("parse failed");
+
+    let analyzer = SemanticAnalyzer::new();
+    let graph = analyzer
+        .analyze(parsed.units, &AnalyzeOptions::default())
+        .expect("analysis failed");
+
+    let edge_count = |edge_type| {
+        graph
+            .edges()
+            .iter()
+            .filter(|e| e.edge_type == edge_type)
+            .count()
+    };
+
+    assert!(
+        edge_count(EdgeType::Contains) > 0,
+        "Expected contains edges"
+    );
+    assert!(edge_count(EdgeType::Calls) > 0, "Expected call edges");
+    assert!(edge_count(EdgeType::Imports) > 0, "Expected import edges");
+    assert!(
+        edge_count(EdgeType::Inherits) > 0,
+        "Expected inherits edges"
+    );
+    assert!(
+        edge_count(EdgeType::Implements) > 0,
+        "Expected implements edges"
+    );
+    assert!(
+        edge_count(EdgeType::UsesType) > 0,
+        "Expected type-use edges"
+    );
+}
+
+#[test]
+fn test_full_analysis_java_overloads_keep_unique_qnames() {
+    let parser = Parser::new();
+    let path = testdata_path("java/com/example/core/Worker.java");
+    let content = std::fs::read_to_string(&path).expect("Could not read test file");
+    let units = parser.parse_file(&path, &content).expect("Parse failed");
+
+    let analyzer = SemanticAnalyzer::new();
+    let graph = analyzer
+        .analyze(units, &AnalyzeOptions::default())
+        .expect("analysis failed");
+
+    let processes: Vec<_> = (0..graph.unit_count() as u64)
+        .filter_map(|id| graph.get_unit(id))
+        .filter(|u| u.language == Language::Java && u.name == "process")
+        .collect();
+    assert!(processes.len() >= 2, "Expected overloaded process units");
+
+    let unique: std::collections::HashSet<_> = processes
+        .iter()
+        .map(|u| u.qualified_name.as_str())
+        .collect();
+    assert_eq!(
+        unique.len(),
+        processes.len(),
+        "Overloaded Java methods should have unique qnames"
+    );
+}
+
+#[test]
 fn test_full_analysis_containment_edges() {
     let units = parse_test_file("python/simple_module.py");
     let analyzer = SemanticAnalyzer::new();

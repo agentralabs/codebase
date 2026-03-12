@@ -210,13 +210,12 @@ impl Resolver {
         }
 
         // Strategy 2: Try local resolution (same file, then by simple name)
-        if let Some(local_id) = self.resolve_local(&raw_ref.name, unit, all_units, symbol_table) {
+        if let Some(local_id) = self.resolve_local(raw_ref, unit, all_units, symbol_table) {
             return Resolution::Local(local_id);
         }
 
         // Strategy 3: Try imported symbol resolution
-        if let Some(imported) = self.resolve_imported(&raw_ref.name, unit, all_units, symbol_table)
-        {
+        if let Some(imported) = self.resolve_imported(raw_ref, unit, all_units, symbol_table) {
             return Resolution::Imported(imported);
         }
 
@@ -230,11 +229,12 @@ impl Resolver {
 
     fn resolve_local(
         &self,
-        name: &str,
+        raw_ref: &RawReference,
         unit: &RawCodeUnit,
         _all_units: &[RawCodeUnit],
         symbol_table: &SymbolTable,
     ) -> Option<u64> {
+        let name = raw_ref.name.as_str();
         let file_key = unit.file_path.to_string_lossy().to_string();
         let file_units = symbol_table.units_in_file(&file_key);
 
@@ -247,7 +247,14 @@ impl Resolver {
                 // Match on the simple name part of the qname
                 let simple = qname.rsplit('.').next().unwrap_or(qname);
                 let simple2 = qname.rsplit("::").next().unwrap_or(qname);
-                if simple == name || simple2 == name || qname == name {
+                let simple_overload = strip_overload_suffix(simple);
+                let simple2_overload = strip_overload_suffix(simple2);
+                if simple == name
+                    || simple2 == name
+                    || qname == name
+                    || simple_overload == name
+                    || simple2_overload == name
+                {
                     return Some(id);
                 }
             }
@@ -260,11 +267,12 @@ impl Resolver {
 
     fn resolve_imported(
         &self,
-        name: &str,
+        raw_ref: &RawReference,
         unit: &RawCodeUnit,
         all_units: &[RawCodeUnit],
         symbol_table: &SymbolTable,
     ) -> Option<ImportedSymbol> {
+        let name = raw_ref.name.as_str();
         // Check if any import in the same file matches this name
         let file_key = unit.file_path.to_string_lossy().to_string();
         let file_unit_ids = symbol_table.units_in_file(&file_key);
@@ -273,11 +281,8 @@ impl Resolver {
             // Find the unit for this ID
             if let Some(file_unit) = all_units.iter().find(|u| u.temp_id == fid) {
                 if file_unit.unit_type == CodeUnitType::Import {
-                    // Check if this import's name matches the reference
                     let import_name = &file_unit.name;
-                    if import_name.contains(name)
-                        || name.contains(import_name.rsplit('/').next().unwrap_or(import_name))
-                    {
+                    if import_matches(unit.language, raw_ref.kind, import_name, name) {
                         return Some(ImportedSymbol {
                             unit_id: fid,
                             import_path: import_name.clone(),
@@ -509,6 +514,62 @@ impl Resolver {
             },
         );
     }
+}
+
+fn strip_overload_suffix(name: &str) -> &str {
+    name.split('$').next().unwrap_or(name)
+}
+
+fn import_matches(language: Language, kind: ReferenceKind, import_name: &str, name: &str) -> bool {
+    if import_name == name {
+        return true;
+    }
+    if import_name.ends_with(&format!(".{}", name)) {
+        return true;
+    }
+    if name.contains('.') && name.ends_with(import_name) {
+        return true;
+    }
+
+    if language == Language::Java {
+        return import_matches_java(kind, import_name, name);
+    }
+
+    import_name.contains(name)
+        || name.contains(import_name.rsplit('/').next().unwrap_or(import_name))
+}
+
+fn import_matches_java(kind: ReferenceKind, import_name: &str, name: &str) -> bool {
+    let normalized_import = import_name.trim();
+    let normalized_name = name.trim();
+
+    if normalized_import
+        .rsplit('.')
+        .next()
+        .is_some_and(|leaf| leaf == normalized_name)
+    {
+        return true;
+    }
+
+    if let Some(prefix) = normalized_import.strip_suffix(".*") {
+        if normalized_name.starts_with(prefix) {
+            return true;
+        }
+        if kind != ReferenceKind::Call && !normalized_name.contains('.') {
+            return true;
+        }
+    }
+
+    if kind == ReferenceKind::Call
+        && normalized_import
+            .rsplit('.')
+            .next()
+            .is_some_and(|leaf| leaf == normalized_name)
+    {
+        return true;
+    }
+
+    false
 }
 
 impl Default for Resolver {

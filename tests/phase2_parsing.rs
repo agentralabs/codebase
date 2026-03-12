@@ -1,6 +1,6 @@
 //! Phase 2 tests: Multi-language parsing engine.
 //!
-//! Tests the tree-sitter based parsers for Python, Rust, TypeScript, and Go.
+//! Tests the tree-sitter based parsers for Python, Rust, TypeScript, Go, and Java.
 
 use std::path::Path;
 
@@ -51,6 +51,7 @@ fn test_parser_new() {
     assert!(parser.should_parse(Path::new("foo.ts")));
     assert!(parser.should_parse(Path::new("foo.js")));
     assert!(parser.should_parse(Path::new("foo.go")));
+    assert!(parser.should_parse(Path::new("foo.java")));
     assert!(!parser.should_parse(Path::new("foo.txt")));
     assert!(!parser.should_parse(Path::new("foo.c")));
 }
@@ -679,6 +680,214 @@ fn test_go_benchmark_detection() {
 }
 
 // ============================================================
+// Java parsing
+// ============================================================
+
+#[test]
+fn test_java_parse_worker_module() {
+    let units = parse_test_file("java/com/example/core/Worker.java");
+    assert!(!units.is_empty());
+
+    let modules = find_units_by_type(&units, CodeUnitType::Module);
+    assert_eq!(modules.len(), 1);
+    assert_eq!(modules[0].language, Language::Java);
+}
+
+#[test]
+fn test_java_extracts_types_and_signatures() {
+    let units = parse_test_file("java/com/example/core/Worker.java");
+
+    let worker = find_unit_by_name(&units, "Worker").expect("Worker not found");
+    assert_eq!(worker.unit_type, CodeUnitType::Type);
+    assert!(
+        worker.qualified_name.starts_with("com.example.core.Worker"),
+        "Worker qname should be package-rooted, got {}",
+        worker.qualified_name
+    );
+
+    let process_methods: Vec<_> = units.iter().filter(|u| u.name == "process").collect();
+    assert!(
+        process_methods.len() >= 2,
+        "Expected overloaded process methods"
+    );
+    let qnames: std::collections::HashSet<_> = process_methods
+        .iter()
+        .map(|u| u.qualified_name.as_str())
+        .collect();
+    assert_eq!(
+        qnames.len(),
+        process_methods.len(),
+        "Overloaded methods should have unique qnames"
+    );
+}
+
+#[test]
+fn test_java_extracts_reference_kinds() {
+    let units = parse_test_file("java/com/example/core/Worker.java");
+
+    let worker = find_unit_by_name(&units, "Worker").expect("Worker not found");
+    assert!(
+        worker
+            .references
+            .iter()
+            .any(|r| r.kind == agentic_codebase::parse::ReferenceKind::Inherit),
+        "Worker should contain inheritance refs"
+    );
+    assert!(
+        worker
+            .references
+            .iter()
+            .any(|r| r.kind == agentic_codebase::parse::ReferenceKind::Implement),
+        "Worker should contain interface refs"
+    );
+    assert!(
+        worker
+            .references
+            .iter()
+            .any(|r| r.kind == agentic_codebase::parse::ReferenceKind::TypeUse),
+        "Worker should contain type-use refs"
+    );
+
+    let process = units
+        .iter()
+        .find(|u| {
+            u.name == "process"
+                && u.signature
+                    .as_deref()
+                    .is_some_and(|s| s.contains("String)"))
+        })
+        .expect("single-arg process not found");
+    assert!(
+        process
+            .references
+            .iter()
+            .any(|r| r.kind == agentic_codebase::parse::ReferenceKind::Call),
+        "process should contain call refs"
+    );
+}
+
+#[test]
+fn test_java_import_units_have_import_refs() {
+    let units = parse_test_file("java/com/example/core/Worker.java");
+    let imports = find_units_by_type(&units, CodeUnitType::Import);
+    assert!(imports.len() >= 3, "Expected import units for Worker.java");
+    assert!(imports.iter().all(|u| {
+        u.references
+            .iter()
+            .any(|r| r.kind == agentic_codebase::parse::ReferenceKind::Import)
+    }));
+}
+
+#[test]
+fn test_java_synthetic_lambda_and_anonymous_nodes() {
+    let units = parse_test_file("java/com/example/core/Worker.java");
+    assert!(
+        units.iter().any(|u| u.name.starts_with("lambda$")),
+        "Expected synthetic lambda node"
+    );
+    assert!(
+        units.iter().any(|u| u.name.starts_with("anonymous$")),
+        "Expected synthetic anonymous class node"
+    );
+}
+
+#[test]
+fn test_java_test_file_detection() {
+    let parser = agentic_codebase::parse::java::JavaParser::new();
+    assert!(agentic_codebase::parse::LanguageParser::is_test_file(
+        &parser,
+        Path::new("WorkerTest.java"),
+        ""
+    ));
+    assert!(!agentic_codebase::parse::LanguageParser::is_test_file(
+        &parser,
+        Path::new("Worker.java"),
+        ""
+    ));
+}
+
+#[test]
+fn test_java_qname_collision_regression() {
+    let parser = Parser::new();
+    let root = testdata_path("java");
+    let opts = ParseOptions {
+        languages: vec![Language::Java],
+        ..Default::default()
+    };
+    let result = parser
+        .parse_directory(&root, &opts)
+        .expect("parse_directory failed");
+
+    let helpers: Vec<_> = result
+        .units
+        .iter()
+        .filter(|u| u.name == "Helper" && u.unit_type == CodeUnitType::Type)
+        .collect();
+    assert!(
+        helpers.len() >= 2,
+        "Expected Helper classes in separate packages"
+    );
+
+    let helper_qnames: std::collections::HashSet<_> =
+        helpers.iter().map(|u| u.qualified_name.as_str()).collect();
+    assert_eq!(
+        helper_qnames.len(),
+        helpers.len(),
+        "Helper qnames should be unique across packages"
+    );
+}
+
+#[test]
+fn test_java_deep_nesting_generated_source() {
+    let parser = Parser::new();
+    let depth = 4000usize;
+
+    let mut source = String::from("package stress; public class Deep { public void run() {");
+    for _ in 0..depth {
+        source.push_str("if (true) {");
+    }
+    for _ in 0..depth {
+        source.push('}');
+    }
+    source.push_str(" } }");
+
+    let units = parser
+        .parse_file(Path::new("Deep.java"), &source)
+        .expect("deep nesting Java parse failed");
+
+    assert!(!units.is_empty(), "Deep.java should produce units");
+    assert!(
+        units.iter().any(|u| u.name == "run"),
+        "Expected run() method in deep nesting source"
+    );
+}
+
+#[test]
+fn test_java_large_body_generated_source() {
+    let parser = Parser::new();
+    let statements = 15000usize;
+
+    let mut source =
+        String::from("package stress; public class Large { public void run() { String s = \"x\";");
+    for _ in 0..statements {
+        source.push_str("helper(); s.length();");
+    }
+    source.push_str(" } private void helper() {} }");
+
+    let units = parser
+        .parse_file(Path::new("Large.java"), &source)
+        .expect("large-body Java parse failed");
+
+    let run = units
+        .iter()
+        .find(|u| u.name == "run")
+        .expect("run() not found in Large.java");
+    assert!(
+        !run.references.is_empty(),
+        "run() should contain extracted references in large body"
+    );
+}
+// ============================================================
 // Cross-language tests
 // ============================================================
 
@@ -689,6 +898,7 @@ fn test_all_units_have_spans() {
         "rust/simple_lib.rs",
         "typescript/simple_module.ts",
         "go/simple_module.go",
+        "java/com/example/core/Worker.java",
     ] {
         let units = parse_test_file(file);
         for unit in &units {
@@ -710,6 +920,7 @@ fn test_all_units_have_qualified_names() {
         "rust/simple_lib.rs",
         "typescript/simple_module.ts",
         "go/simple_module.go",
+        "java/com/example/core/Worker.java",
     ] {
         let units = parse_test_file(file);
         for unit in &units {
@@ -756,6 +967,15 @@ fn test_all_units_have_correct_language() {
     for u in &go_units {
         assert_eq!(u.language, Language::Go, "Go units should be Language::Go");
     }
+
+    let java_units = parse_test_file("java/com/example/core/Worker.java");
+    for u in &java_units {
+        assert_eq!(
+            u.language,
+            Language::Java,
+            "Java units should be Language::Java"
+        );
+    }
 }
 
 #[test]
@@ -765,6 +985,7 @@ fn test_unique_temp_ids_per_file() {
         "rust/simple_lib.rs",
         "typescript/simple_module.ts",
         "go/simple_module.go",
+        "java/com/example/core/Worker.java",
     ] {
         let units = parse_test_file(file);
         let mut ids: Vec<u64> = units.iter().map(|u| u.temp_id).collect();
@@ -911,6 +1132,16 @@ fn test_parse_malformed_rust() {
     let parser = Parser::new();
     let source = "fn broken( { } fn good() -> u32 { 42 }";
     let result = parser.parse_file(Path::new("broken.rs"), source);
+    if let Ok(units) = result {
+        assert!(!units.is_empty());
+    }
+}
+
+#[test]
+fn test_parse_malformed_java() {
+    let parser = Parser::new();
+    let source = "class Broken { void run( { int x = 1; }";
+    let result = parser.parse_file(Path::new("broken.java"), source);
     if let Ok(units) = result {
         assert!(!units.is_empty());
     }

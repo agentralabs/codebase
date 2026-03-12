@@ -1,0 +1,11 @@
+{
+  "autonomic": {
+    "command": "compile",
+    "duration_ms": 0,
+    "profile": "desktop"
+  },
+  "project": "AgenticCodebase",
+  "status": "error",
+  "surface": "cli",
+  "timestamp": "2026-03-12T20:25:00.843268900+00:00"
+}
