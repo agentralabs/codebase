@@ -191,7 +191,7 @@ impl JavaParser {
                     }
                 }
                 "object_creation_expression" => {
-                    if let Some(class_body) = node.child_by_field_name("class_body") {
+                    if let Some(class_body) = find_anonymous_class_body(node) {
                         if let Some(unit) = self.extract_anonymous_class_node(
                             node,
                             source,
@@ -496,7 +496,7 @@ impl JavaParser {
         next_id: &mut u64,
         counters: &mut SyntheticCounters,
     ) -> Option<RawCodeUnit> {
-        let class_body = node.child_by_field_name("class_body")?;
+        let class_body = find_anonymous_class_body(node)?;
         counters.anonymous += 1;
 
         let span = node_to_span(class_body);
@@ -560,24 +560,6 @@ impl LanguageParser for JavaParser {
             package_name.clone()
         };
 
-        let mut module_unit = RawCodeUnit::new(
-            CodeUnitType::Module,
-            Language::Java,
-            module_name.clone(),
-            file_path.to_path_buf(),
-            node_to_span(tree.root_node()),
-        );
-        module_unit.temp_id = next_id;
-        module_unit.qualified_name = if package_name.is_empty() {
-            module_name.clone()
-        } else {
-            format!("{}.{}", package_name, module_name)
-        };
-        next_id += 1;
-
-        index_by_temp_id.insert(module_unit.temp_id, units.len());
-        units.push(module_unit);
-
         self.walk_tree_iterative(
             tree.root_node(),
             source,
@@ -588,6 +570,24 @@ impl LanguageParser for JavaParser {
             &mut next_id,
             &mut counters,
         );
+
+        // Emit module after traversal to keep type/function lookup precedence
+        // for same-name symbols in a file.
+        let mut module_unit = RawCodeUnit::new(
+            CodeUnitType::Module,
+            Language::Java,
+            module_name.clone(),
+            file_path.to_path_buf(),
+            node_to_span(tree.root_node()),
+        );
+        module_unit.temp_id = next_id;
+        let module_leaf = sanitize_qname_leaf(&module_name);
+        module_unit.qualified_name = if namespace_root.is_empty() {
+            format!("$module.{}", module_leaf)
+        } else {
+            format!("{}.$module.{}", namespace_root, module_leaf)
+        };
+        units.push(module_unit);
 
         Ok(units)
     }
@@ -604,6 +604,18 @@ impl LanguageParser for JavaParser {
 fn collect_direct_children<'a>(node: tree_sitter::Node<'a>) -> Vec<tree_sitter::Node<'a>> {
     let mut cursor = node.walk();
     node.children(&mut cursor).collect()
+}
+
+fn find_anonymous_class_body(node: tree_sitter::Node) -> Option<tree_sitter::Node> {
+    if let Some(class_body) = node.child_by_field_name("class_body") {
+        return Some(class_body);
+    }
+
+    let mut cursor = node.walk();
+    let found = node
+        .children(&mut cursor)
+        .find(|child| child.kind() == "class_body");
+    found
 }
 
 fn java_qname(parent: &str, name: &str, overload_suffix: Option<&str>) -> String {
@@ -738,14 +750,18 @@ fn is_valid_package_segment(segment: &str) -> bool {
 }
 
 fn method_signature(node: tree_sitter::Node, source: &str, method_name: &str) -> String {
-    let params = node
-        .child_by_field_name("parameters")
-        .map(|n| get_node_text(n, source).trim().to_string())
-        .unwrap_or_else(|| "()".to_string());
+    let param_types = collect_parameter_type_texts(node, source);
+    let params = if param_types.is_empty() {
+        "()".to_string()
+    } else {
+        format!("({})", param_types.join(", "))
+    };
+
     let return_ty = node
         .child_by_field_name("type")
-        .map(|n| format!(" -> {}", get_node_text(n, source).trim()))
+        .map(|n| format!(" -> {}", normalize_type_text(get_node_text(n, source))))
         .unwrap_or_default();
+
     format!("{}{}{}", method_name, params, return_ty)
 }
 

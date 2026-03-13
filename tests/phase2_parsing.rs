@@ -722,6 +722,25 @@ fn test_java_extracts_types_and_signatures() {
 }
 
 #[test]
+fn test_java_module_and_type_qnames_are_distinct() {
+    let units = parse_test_file("java/com/example/core/Worker.java");
+
+    let module = units
+        .iter()
+        .find(|u| u.name == "Worker" && u.unit_type == CodeUnitType::Module)
+        .expect("Worker module not found");
+    let ty = units
+        .iter()
+        .find(|u| u.name == "Worker" && u.unit_type == CodeUnitType::Type)
+        .expect("Worker type not found");
+
+    assert_ne!(
+        module.qualified_name, ty.qualified_name,
+        "Module and top-level type should have distinct qnames"
+    );
+}
+
+#[test]
 fn test_java_extracts_reference_kinds() {
     let units = parse_test_file("java/com/example/core/Worker.java");
 
