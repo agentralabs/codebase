@@ -50,6 +50,9 @@ acb compile ./src --exclude="*test*" --exclude="vendor"
 
 # Write coverage report
 acb compile ./src --coverage-report coverage.json
+
+# Parse files even if matched by .gitignore
+acb compile ./src --no-gitignore
 ```
 
 | Option | Description |
@@ -57,6 +60,7 @@ acb compile ./src --coverage-report coverage.json
 | `-o, --output <path>` | Output file path (default: `<dirname>.acb` in current dir) |
 | `-e, --exclude <glob>` | Glob patterns to exclude (may be repeated) |
 | `--include-tests` | Include test files in compilation (default: true) |
+| `--no-gitignore` | Disable `.gitignore` filtering during file discovery |
 | `--coverage-report <path>` | Write ingestion coverage report JSON |
 
 ### `acb info`

@@ -30,6 +30,7 @@ acb budget
 acb compile <repo-path> -o graph.acb
 acb compile <repo-path> --exclude "target" --exclude "node_modules"
 acb compile <repo-path> --coverage-report coverage.json
+acb compile <repo-path> --no-gitignore
 ```
 
 Common options:
@@ -37,6 +38,7 @@ Common options:
 - `--output <file.acb>`
 - `--exclude <glob>` (repeatable)
 - `--include-tests`
+- `--no-gitignore`
 - `--coverage-report <path>`
 
 ## `acb query` types
