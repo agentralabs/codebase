@@ -6,6 +6,7 @@ use std::path::Path;
 
 use agentic_codebase::parse::{ParseOptions, Parser};
 use agentic_codebase::types::{CodeUnitType, Language, Visibility};
+use tempfile::TempDir;
 
 // ============================================================
 // Helper functions
@@ -23,6 +24,19 @@ fn parse_test_file(relative: &str) -> Vec<agentic_codebase::parse::RawCodeUnit> 
     let content = std::fs::read_to_string(&path).expect("Could not read test file");
     let parser = Parser::new();
     parser.parse_file(&path, &content).expect("Parse failed")
+}
+
+fn create_gitignore_fixture() -> TempDir {
+    let dir = TempDir::new().expect("tempdir");
+    std::fs::create_dir_all(dir.path().join(".git").join("info")).expect("create .git/info");
+    std::fs::create_dir_all(dir.path().join("ignored")).expect("create ignored dir");
+
+    std::fs::write(dir.path().join(".gitignore"), "ignored/\n").expect("write .gitignore");
+    std::fs::write(dir.path().join("main.rs"), "pub fn root() {}\n").expect("write main.rs");
+    std::fs::write(dir.path().join("ignored").join("extra.rs"), "pub fn extra() {}\n")
+        .expect("write ignored file");
+
+    dir
 }
 
 fn find_unit_by_name<'a>(
@@ -77,6 +91,7 @@ fn test_parse_options_default() {
     let opts = ParseOptions::default();
     assert!(opts.languages.is_empty());
     assert!(opts.include_tests);
+    assert!(opts.respect_gitignore);
     assert_eq!(opts.max_file_size, 10 * 1024 * 1024);
     assert!(!opts.exclude.is_empty());
     assert!(opts.exclude.iter().any(|e| e.contains("node_modules")));
@@ -839,6 +854,38 @@ fn test_parse_directory_exclude_tests() {
         .expect("parse_directory failed");
     // Some files should be skipped because they are test files
     assert!(result.stats.files_skipped > 0 || result.stats.files_parsed > 0);
+}
+
+#[test]
+fn test_parse_directory_respect_gitignore_toggle() {
+    let parser = Parser::new();
+    let fixture = create_gitignore_fixture();
+
+    let default_opts = ParseOptions::default();
+    let default_result = parser
+        .parse_directory(fixture.path(), &default_opts)
+        .expect("parse_directory with gitignore failed");
+    assert_eq!(default_result.stats.files_parsed, 1);
+    assert_eq!(default_result.stats.coverage.files_candidate, 1);
+
+    let no_gitignore_opts = ParseOptions {
+        respect_gitignore: false,
+        ..Default::default()
+    };
+    let no_gitignore_result = parser
+        .parse_directory(fixture.path(), &no_gitignore_opts)
+        .expect("parse_directory without gitignore failed");
+
+    assert!(
+        no_gitignore_result.stats.coverage.files_seen >= default_result.stats.coverage.files_seen,
+        "disabling gitignore should not reduce files_seen"
+    );
+    assert!(
+        no_gitignore_result.stats.coverage.files_candidate
+            > default_result.stats.coverage.files_candidate,
+        "disabling gitignore should include ignored candidates"
+    );
+    assert_eq!(no_gitignore_result.stats.files_parsed, 2);
 }
 
 #[test]

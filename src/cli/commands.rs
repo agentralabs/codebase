@@ -134,6 +134,7 @@ pub enum Command {
     ///   acb compile ./src
     ///   acb compile ./src -o myapp.acb
     ///   acb compile ./src --exclude="*test*" --exclude="vendor"
+    ///   acb compile ./src --no-gitignore
     #[command(alias = "build")]
     Compile {
         /// Path to the source directory to compile.
@@ -150,6 +151,10 @@ pub enum Command {
         /// Include test files in the compilation (default: true).
         #[arg(long, default_value_t = true)]
         include_tests: bool,
+
+        /// Disable `.gitignore` filtering during file discovery.
+        #[arg(long)]
+        no_gitignore: bool,
 
         /// Write ingestion coverage report JSON to this path.
         #[arg(long)]
@@ -415,12 +420,14 @@ pub fn run(cli: Cli) -> Result<(), Box<dyn std::error::Error>> {
             output,
             exclude,
             include_tests,
+            no_gitignore,
             coverage_report,
         }) => cmd_compile(
             path,
             output.as_deref(),
             exclude,
             *include_tests,
+            *no_gitignore,
             coverage_report.as_deref(),
             &cli,
         ),
@@ -1096,6 +1103,7 @@ fn cmd_compile(
     output: Option<&std::path::Path>,
     exclude: &[String],
     include_tests: bool,
+    no_gitignore: bool,
     coverage_report: Option<&Path>,
     cli: &Cli,
 ) -> Result<(), Box<dyn std::error::Error>> {
@@ -1134,6 +1142,7 @@ fn cmd_compile(
     // Build parse options.
     let mut opts = ParseOptions {
         include_tests,
+        respect_gitignore: !no_gitignore,
         ..ParseOptions::default()
     };
     for pat in exclude {

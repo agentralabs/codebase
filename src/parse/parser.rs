@@ -29,6 +29,8 @@ pub struct ParseOptions {
     pub exclude: Vec<String>,
     /// Include test files.
     pub include_tests: bool,
+    /// Respect `.gitignore` files during file discovery.
+    pub respect_gitignore: bool,
     /// Maximum file size to parse (bytes).
     pub max_file_size: usize,
 }
@@ -48,6 +50,7 @@ impl Default for ParseOptions {
                 "**/build/**".into(),
             ],
             include_tests: true,
+            respect_gitignore: true,
             max_file_size: 10 * 1024 * 1024, // 10MB
         }
     }
@@ -285,7 +288,10 @@ impl Parser {
         let mut files = Vec::new();
         let mut coverage = ParseCoverageStats::default();
 
-        let walker = WalkBuilder::new(root).hidden(true).git_ignore(true).build();
+        let walker = WalkBuilder::new(root)
+            .hidden(true)
+            .git_ignore(options.respect_gitignore)
+            .build();
 
         for entry in walker {
             let entry = match entry {

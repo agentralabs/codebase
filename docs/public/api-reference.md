@@ -58,6 +58,7 @@ Recursively scan a directory and parse all supported source files.
 ```rust
 pub struct ParseOptions {
     pub include_tests: bool,      // Include test files (default: true)
+    pub respect_gitignore: bool, // Respect .gitignore files (default: true)
     pub exclude: Vec<String>,     // Glob patterns to exclude
     pub max_file_size: usize,     // Maximum file size in bytes (default: 10 MB)
 }

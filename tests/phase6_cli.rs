@@ -45,6 +45,33 @@ mod tests {
     dir
 }
 
+fn create_gitignore_fixture_dir() -> TempDir {
+    let dir = TempDir::new().unwrap();
+    fs::create_dir_all(dir.path().join(".git").join("info")).unwrap();
+    fs::create_dir_all(dir.path().join("ignored")).unwrap();
+
+    fs::write(dir.path().join(".gitignore"), "ignored/\n").unwrap();
+    fs::write(dir.path().join("main.rs"), "pub fn root() {}\n").unwrap();
+    fs::write(dir.path().join("ignored").join("extra.rs"), "pub fn extra() {}\n").unwrap();
+
+    dir
+}
+
+fn read_coverage_counts(path: &std::path::Path) -> (u64, u64) {
+    let raw = fs::read_to_string(path).unwrap();
+    let payload: serde_json::Value = serde_json::from_str(&raw).unwrap();
+    let coverage = payload.get("coverage").expect("coverage object");
+    let files_seen = coverage
+        .get("files_seen")
+        .and_then(|v| v.as_u64())
+        .expect("files_seen");
+    let files_candidate = coverage
+        .get("files_candidate")
+        .and_then(|v| v.as_u64())
+        .expect("files_candidate");
+    (files_seen, files_candidate)
+}
+
 /// Compile a sample directory and return the path to the .acb output.
 fn compile_sample() -> (TempDir, PathBuf) {
     let src_dir = create_sample_rust_dir();
@@ -158,6 +185,64 @@ fn test_cli_compile_with_exclude() {
         String::from_utf8_lossy(&output.stderr)
     );
     assert!(acb_path.exists());
+}
+
+#[test]
+fn test_cli_compile_no_gitignore() {
+    let src_dir = create_gitignore_fixture_dir();
+    let out_dir = TempDir::new().unwrap();
+
+    let default_acb = out_dir.path().join("default.acb");
+    let no_gitignore_acb = out_dir.path().join("no-gitignore.acb");
+    let default_cov = out_dir.path().join("default-coverage.json");
+    let no_gitignore_cov = out_dir.path().join("no-gitignore-coverage.json");
+
+    let default_output = Command::new(acb_bin())
+        .args([
+            "compile",
+            src_dir.path().to_str().unwrap(),
+            "-o",
+            default_acb.to_str().unwrap(),
+            "--coverage-report",
+            default_cov.to_str().unwrap(),
+        ])
+        .output()
+        .unwrap();
+    assert!(
+        default_output.status.success(),
+        "compile default failed: {}",
+        String::from_utf8_lossy(&default_output.stderr)
+    );
+
+    let no_gitignore_output = Command::new(acb_bin())
+        .args([
+            "compile",
+            src_dir.path().to_str().unwrap(),
+            "-o",
+            no_gitignore_acb.to_str().unwrap(),
+            "--no-gitignore",
+            "--coverage-report",
+            no_gitignore_cov.to_str().unwrap(),
+        ])
+        .output()
+        .unwrap();
+    assert!(
+        no_gitignore_output.status.success(),
+        "compile --no-gitignore failed: {}",
+        String::from_utf8_lossy(&no_gitignore_output.stderr)
+    );
+
+    let (default_seen, default_candidate) = read_coverage_counts(&default_cov);
+    let (no_gitignore_seen, no_gitignore_candidate) = read_coverage_counts(&no_gitignore_cov);
+
+    assert!(
+        no_gitignore_seen >= default_seen,
+        "--no-gitignore should not reduce files_seen (default={default_seen}, no_gitignore={no_gitignore_seen})"
+    );
+    assert!(
+        no_gitignore_candidate > default_candidate,
+        "--no-gitignore should include ignored candidates (default={default_candidate}, no_gitignore={no_gitignore_candidate})"
+    );
 }
 
 #[test]
